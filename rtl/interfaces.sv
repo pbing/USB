@@ -22,7 +22,7 @@ interface if_transceiver;
                output rx_data,output rx_active,output rx_valid,output rx_error);
 endinterface:if_transceiver
 
-interface if_fifo #(parameter addr_width=4,data_width=8)
+interface if_fifo #(parameter addr_width=4,data_width=8);
    logic [data_width-1:0] data;   // input data
    logic [data_width-1:0] q;      // output data
    logic [addr_width-1:0] usedw;  // used words

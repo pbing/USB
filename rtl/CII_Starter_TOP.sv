@@ -149,7 +149,9 @@ module CII_Starter_TOP (/* Clock Input */
 					       .d_i(usb_d_i),
 					       .d_o(usb_d_o),
 					       .d_en(usb_d_en),
-					       .io(io));
+					       .endpi0(endpi0),
+					       .endpo0(endpo0),
+					       .endpi1(endpi1));
 
    /* I/O assignments */
    assign clk                     = CLOCK_24[0];

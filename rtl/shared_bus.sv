@@ -47,7 +47,7 @@ module shared_bus
 
    always_comb
      begin:in
-	io.din       = 8b'x;
+	io.din       = 8'bx;
 	endpi0.data  = io.dout[7:0];
 	endpi1.data  = io.dout[7:0];
 	endpo0.rdreq = 1'b0;
