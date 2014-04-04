@@ -1,0 +1,3 @@
+# Compile the firmware and provide the MIF to Modelsim and Quartus II
+
+make sim syn
