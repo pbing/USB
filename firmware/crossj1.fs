@@ -60,7 +60,7 @@ j1asm
 
 : h#
     base @ >r 16 base !
-    0. bl parse >number throw 2drop postpone literal
+    0. bl word count >number throw 2drop postpone literal
     r> base ! ; immediate
 
 variable tdp
@@ -337,6 +337,7 @@ import include
 import [if]
 import [else]
 import [then]
+import char
 
 : do-number ( n -- |n )
     state @ if
@@ -466,8 +467,8 @@ decimal
         then
     then ;
 
-: d# 0. bl parse 10 base>number ;
-: h# 0. bl parse 16 base>number ;
+: d# 0. bl word count 10 base>number ;
+: h# 0. bl word count 16 base>number ;
 
 ( Conditionals                               JCB 13:12 09/03/10)
 : if
