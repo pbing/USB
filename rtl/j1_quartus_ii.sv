@@ -149,7 +149,7 @@ module j1(input               sys_clk_i, // main clock
             OP_R         : _st0 = rst0;
             OP_AT        : _st0 = (io_sel) ? io_din : ramrd;
             OP_N_LSHIFT_T: _st0 = st1 << st0[3:0];
-            OP_DEPTH     : _st0 = {rsp,3'b000,dsp};
+            OP_DEPTH     : _st0 = {3'b0,rsp,3'b0,dsp};
             OP_N_ULS_T   : _st0 = {16{(st1 < st0)}};
             default        _st0 = 16'hx;
 	  endcase
