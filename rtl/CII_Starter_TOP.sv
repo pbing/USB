@@ -106,7 +106,6 @@ module CII_Starter_TOP (/* Clock Input */
 
    import types::*;
 
-   /* I/O addresses */
    /* common signals */
    wire reset;
    wire clk;
@@ -117,15 +116,25 @@ module CII_Starter_TOP (/* Clock Input */
    wire       usb_d_en;       // USB port D+,D- (enable)
    wire       usb_reset;      // USB reset due to SE0 for 10 ms
 
-   /* I/O signals */
+   /* J1 I/O signals */
    logic [15:0] io_din;
    wire  [15:0] io_dout,io_addr;
    wire         io_rd,io_wr;
+
+   /* external ports */
+   assign clk                     = CLOCK_24[0];
+   assign usb_d_i                 = d_port_t'({GPIO_1[34],GPIO_1[32]});
+   assign {GPIO_1[34],GPIO_1[32]} = (usb_d_en) ? usb_d_o : 2'bz;
+   assign GPIO_1[26]              = ~reset;
 
    if_io   io();
    if_fifo endpi0();
    if_fifo endpo0();
    if_fifo endpi1();
+
+   sync_reset sync_reset(.clk(clk),
+			 .key(KEY[0]),
+			 .reset(reset));
 
    j1  j1(.sys_clk_i(clk),
 	  .sys_rst_i(reset),
@@ -135,10 +144,8 @@ module CII_Starter_TOP (/* Clock Input */
 	  .io_addr(io.addr),
 	  .io_dout(io.dout));
 
-   shared_bus shared_bus (.clk(clk),.reset(reset),
-			  .key(KEY),.sw(SW),
-			  .hex0(HEX0),.hex1(HEX1),.hex2(HEX2),.hex3(HEX3),
-			  .ledg(LEDG),.ledr(LEDR),
+   shared_bus shared_bus (.key(KEY),
+			  .sw(SW),
 			  .io(io),
 			  .endpi0(endpi0),
 			  .endpo0(endpo0),
@@ -153,10 +160,13 @@ module CII_Starter_TOP (/* Clock Input */
 					       .endpo0(endpo0),
 					       .endpi1(endpi1));
 
-   /* I/O assignments */
-   assign clk                     = CLOCK_24[0];
-   assign usb_d_i                 = d_port_t'({GPIO_1[34],GPIO_1[32]});
-   assign {GPIO_1[34],GPIO_1[32]} = (usb_d_en) ? usb_d_o : 2'bz;
-   assign GPIO_1[26]              = (reset) ? 1'b0 : 1'b1;
-
+   display display(.clk(clk),
+		   .reset(reset),
+		   .hex0(HEX0),
+		   .hex1(HEX1),
+		   .hex2(HEX2),
+		   .hex3(HEX3),
+		   .ledg(LEDG),
+		   .ledr(LEDR),
+		   .io(io));
 endmodule
