@@ -68,6 +68,7 @@ create configuration-descriptor
     $02            c, \ bInterfaceProtocol (Mouse)
     $00            c, \ iInterface
 \ hid-descriptor
+meta there target constant hid-descriptor
     9              c, \ bLength
     %hid           c, \ bDescriptorType
     $0100           , \ bcdHID
@@ -82,8 +83,6 @@ create configuration-descriptor
     $03            c, \ bmAttributes (Interrupt)
     4               , \ wMaxPacketSize
     10             c, \ bInterval (10 ms)
-
-: hid-descriptor ( -- addr )   configuration-descriptor  d# 9 +  d# 9 + ;
 
 \ LANGID
 create string-descriptor0
