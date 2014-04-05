@@ -142,6 +142,7 @@ module usb_rx
 	  RX_DATA_WAIT5: active = 1'b1;
 	  RX_DATA_WAIT6: active = 1'b1;
 	  RX_DATA_WAIT7: begin active = 1'b1; rcv_data = 1'b1; end
+	  RX_DATA      : active = 1'b1;
 	  ERROR        : error = 1'b1;
 	endcase
      end
