@@ -26,7 +26,7 @@ module usb_device_controller
 		   .endpo0(endpo0),
 		   .endpi1(endpi1));
 
-   fifo8x16 fifo_endpi0(.clock(clock),
+   fifo8x16 fifo_endpi0(.clock(clk),
 			.data(endpi0.data),
 			.rdreq(endpi0.rdreq),
 			.sclr(endpi0.sclr),
@@ -36,7 +36,7 @@ module usb_device_controller
 			.q(endpi0.q),
 			.usedw(endpi0.usedw));
 
-   fifo8x16 fifo_endpo0(.clock(clock),
+   fifo8x16 fifo_endpo0(.clock(clk),
 			.data(endpo0.data),
 			.rdreq(endpo0.rdreq),
 			.sclr(endpo0.sclr),
@@ -46,7 +46,7 @@ module usb_device_controller
 			.q(endpo0.q),
 			.usedw(endpo0.usedw));
 
-   fifo8x16 fifo_endpi1(.clock(clock),
+   fifo8x16 fifo_endpi1(.clock(clk),
 			.data(endpi1.data),
 			.rdreq(endpi1.rdreq),
 			.sclr(endpi1.sclr),
