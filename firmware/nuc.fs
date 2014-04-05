@@ -54,6 +54,13 @@ module[ nuc"
 : 2dup  over over ;
 : +!    tuck @ + swap ! ;
 
+: hibyte ( 16b -- hi )   h# 8 rshift ;
+: lobyte ( 16b -- lo )   h# ff and ;
+: hilo ( 16b -- hi lo )   dup hibyte  swap lobyte ;
+: lohi ( 16b -- lo hi )   dup lobyte  swap hibyte ;
+: lohi-pack ( lo hi -- 16b )   h# 8 lshift  or ; 
+
+
 \ Comparisons
 : <>        = invert ;
 : 0<>       0= invert ;
