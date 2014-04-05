@@ -3,9 +3,9 @@
 
 module[ device"
 
+include io-addr.fs
 include usb-defs.fs
 include descriptors.fs
-include io-addr.fs
 
 variable usb-state
 0 constant powered-state
@@ -60,14 +60,14 @@ variable wLength
 : string?            ( -- f )   wValue @ hibyte  %string = ;
 
 : endp-c@ ( u -- 8b  )   cells h# 5000 +  begin  dup @  until  h# 20 +  @ ;
-: endp-@  ( u -- 16b )   dup endp0-c@  swap endp0-c@  lohi-pack ;
+: endp-@  ( u -- 16b )   dup endp-c@  swap endp-c@  lohi-pack ;
 
 : endp-c! ( 8b u --  )   cells h# 5040 +  begin  dup @  while repeat  h# 20 +  ! ;
 : endp-!  ( 16b u -- )   >r  hilo  r@ endp-c!  r> endp-c! ;
 
 : receive-request ( -- )
-    usb-c@ bmRequestType !  usb-c@ bRequest !
-    usb-@ wValue !  usb-@ wIndex !  usb-@ wLength ! ;
+    d# 0 endp-c@ bmRequestType !  d# 0 endp-c@ bRequest !
+    d# 0 endp-@ wValue !  d# 0 endp-@ wIndex !  d# 0 endp-@ wLength ! ;
 
 \ returning handshakes
 \ FIXME
@@ -78,9 +78,9 @@ variable wLength
 
 \ FIXME
 : 0-length-packet ( -- )          ;
-: 1-length-packet ( n -- )         0 endp-c! ;
-: 2-length-packet ( n1 n2 -- )     0 endp-!  ;
-: data-packets    ( addr u -- )    0do  count  0 endp-c!  loop  drop ;
+: 1-length-packet ( n -- )         d# 0 endp-c! ;
+: 2-length-packet ( n1 n2 -- )     d# 0 endp-!  ;
+: data-packets    ( addr u -- )    0do  count  d# 0 endp-c!  loop  drop ;
 
 \ return the descriptor index
 : descriptor-index ( -- index )   wValue @ lobyte ;
@@ -218,7 +218,7 @@ variable wLength
 
 
 : device-response ( -- )
-    !usb-channel
+\    !usb-channel
     receive-request
     token-setup ;
 

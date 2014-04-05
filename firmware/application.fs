@@ -1,7 +1,7 @@
 \ Application
 module[ application"
 
-include io-addr.fs
+include device.fs
 include hex-display.fs
 include led.fs
 
