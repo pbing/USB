@@ -59,10 +59,10 @@ variable wLength
 : configuration?     ( -- f )   wValue @ hibyte  %configuration = ;
 : string?            ( -- f )   wValue @ hibyte  %string = ;
 
-: endp-c@ ( u -- 8b  )   cells h# 5000 +  begin  dup @  until  h# 20 +  @ ;
+: endp-c@ ( u -- 8b  )   cells h# 5040 +  begin  dup @  while repeat  h# 20 +  @ ;
 : endp-@  ( u -- 16b )   dup endp-c@  swap endp-c@  lohi-pack ;
 
-: endp-c! ( 8b u --  )   cells h# 5040 +  begin  dup @  while repeat  h# 20 +  ! ;
+: endp-c! ( 8b u --  )   cells h# 5000 +  begin  dup @  while repeat  h# 20 +  ! ;
 : endp-!  ( 16b u -- )   >r  hilo  r@ endp-c!  r> endp-c! ;
 
 : receive-request ( -- )
