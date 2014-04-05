@@ -25,5 +25,5 @@ package ioaddr;
      
      ENDPO0_STATUS  = 16'h5040,
      
-     ENDPO0_DATA    = 16'h5060,
+     ENDPO0_DATA    = 16'h5060;
 endpackage
