@@ -3,3 +3,5 @@ sim/*
 !sim/*.sv
 rtl/MegaWizard/*
 !rtl/MegaWizard/*.v
+firmware/*.mif
+firmware/*.lst
