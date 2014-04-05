@@ -81,21 +81,21 @@ variable wLength
 \ GET CONFIGURATION
 \ ======================================================================
 
-: token-setup.get-configuration.device-to-host ( -- )
+: token-setup/get-configuration/device-to-host ( -- )
     ." device-to-host "
     address-state?  if                                                      0 1-length-packet  exit then
     config-state?   if configuration-descriptor 5 + ( bConfigurationValue) c@ 1-length-packet       then ;
 
-: token-setup.get-configuration ( -- )
-    ." get-configuration."
-    device-to-host?  if  token-setup.get-configuration.device-to-host  exit then
+: token-setup/get-configuration ( -- )
+    ." get-configuration/"
+    device-to-host?  if  token-setup/get-configuration/device-to-host  exit then
     handshake-stall ;
 
 \ ======================================================================
 \ GET DESCRIPTOR
 \ ======================================================================
 
-: token-setup.get-descriptor.device-to-host ( -- )
+: token-setup/get-descriptor/device-to-host ( -- )
     ." device-to-host( " wValue @ lohi . . ." ) "
     device?         descriptor-index 0=   and  if  device-descriptor   dup c@ wLength @ min  data-packets  exit then
     configuration?  descriptor-index 0=   and  if  configuration-descriptor  dup 2+ w@ ( wTotalLength) wLength @ min  data-packets  exit then
@@ -104,41 +104,41 @@ variable wLength
     string?         descriptor-index 2 =  and  if  string-descriptor2  dup c@ wLength @ min  data-packets  exit then
     handshake-stall ;
 
-: token-setup.get-descriptor ( -- )
-    ." get-descriptor."
-    device-to-host?  if  token-setup.get-descriptor.device-to-host  exit then
+: token-setup/get-descriptor ( -- )
+    ." get-descriptor/"
+    device-to-host?  if  token-setup/get-descriptor/device-to-host  exit then
     handshake-stall ;
 
 \ ======================================================================
 \ GET INTERFACE
 \ ======================================================================
 
-: token-setup.get-interface.interface-to-host ( -- )
+: token-setup/get-interface/interface-to-host ( -- )
     ." interface-to-host "
     config-state?  wIndex @ 0=  and  if  0 1-length-packet  exit then
     handshake-stall ;
 
-: token-setup.get-interface ( -- )
-    ." get-interface."
-    interface-to-host?  if  token-setup.get-interface.interface-to-host  exit then
+: token-setup/get-interface ( -- )
+    ." get-interface/"
+    interface-to-host?  if  token-setup/get-interface/interface-to-host  exit then
     handshake-stall ;
 
 \ ======================================================================
 \ GET STATUS
 \ ======================================================================
 
-: token-setup.get-status.device-to-host ( -- )
+: token-setup/get-status/device-to-host ( -- )
     ." device-to-host "
     1 ( self-powered) 2-length-packet ;
 
-: token-setup.get-status.interface/endpoint-to-host ( -- )
-    address-state? invert  descriptor-index 0=  or  if  h# 0 2-length-packet  exit then
+: token-setup/get-status/interface/endpoint-to-host ( -- )
+    address-state? invert  descriptor-index 0=  or  if  0 2-length-packet  exit then
     handshake-stall ;
 
-: token-setup.get-status ( -- )
-    ." get-status."
-    device-to-host?                          if  token-setup.get-status.device-to-host              exit then
-    interface-to-host? endpoint-to-host? or  if  token-setup.get-status.interface/endpoint-to-host  exit then
+: token-setup/get-status ( -- )
+    ." get-status/"
+    device-to-host?                          if  token-setup/get-status/device-to-host              exit then
+    interface-to-host? endpoint-to-host? or  if  token-setup/get-status/interface/endpoint-to-host  exit then
     handshake-stall ;
     
 \ ======================================================================
@@ -146,14 +146,14 @@ variable wLength
 \ ======================================================================
 
 \ wValue=0 is not an error
-: token-setup.set-address.host-to-device ( -- )
+: token-setup/set-address/host-to-device ( -- )
     ." host-to-device( " wValue ? ." ) "
     config-state? invert  if  wValue @   usb-pending-address !  0-length-packet  exit  then
     handshake-stall ;
     
-: token-setup.set-address ( -- )
-    ." set-address."
-    host-to-device?  if  token-setup.set-address.host-to-device  exit then
+: token-setup/set-address ( -- )
+    ." set-address/"
+    host-to-device?  if  token-setup/set-address/host-to-device  exit then
     handshake-stall ;
 
 \ ======================================================================
@@ -166,16 +166,16 @@ variable wLength
 \ 0                  : enter address-state
 \ bConfigurationValue: enter config state
 \ else request error
-: token-setup.set-configuration.host-to-device ( -- )
+: token-setup/set-configuration/host-to-device ( -- )
     ." host-to-device( " wValue @ lobyte . ." ) "
     wValue @ lobyte
     dup valid-configuration? invert  if  drop handshake-stall  exit then
     0= if  address-state usb-state !  else  config-state  usb-state !  then
     0-length-packet  ( configure device...) ;
 
-: token-setup.set-configuration ( -- )
+: token-setup/set-configuration ( -- )
     ." set-configuration "
-    host-to-device?  if  token-setup.set-configuration.host-to-device  exit then
+    host-to-device?  if  token-setup/set-configuration/host-to-device  exit then
     handshake-stall ;
 
 \ ======================================================================
@@ -201,18 +201,18 @@ variable wLength
 \ ======================================================================
 
 : token-setup ( -- )
-    cr ." token-setup(wValue=" wValue ?  ." wLength=" wLength ?  ." )."
-  \ clear-feature?      if  token-setup.clear-feature      exit then
-    get-configuration?  if  token-setup.get-configuration  exit then
-    get-descriptor?     if  token-setup.get-descriptor     exit then
-    get-interface?      if  token-setup.get-interface      exit then
-    get-status?         if  token-setup.get-status         exit then
-    set-address?        if  token-setup.set-address        exit then
-    set-configuration?  if  token-setup.set-configuration  exit then
-  \ set-descriptor?     if  token-setup.set-descriptor     exit then
-  \ set-feature?        if  token-setup.set-feature        exit then
-  \ set-interface?      if  token-setup.set-interface      exit then
-  \ synch-frame?        if  token-setup.synch-frame        exit then
+    cr ." token-setup(wValue=" wValue ?  ." wLength=" wLength ?  ." )/"
+  \ clear-feature?      if  token-setup/clear-feature      exit then
+    get-configuration?  if  token-setup/get-configuration  exit then
+    get-descriptor?     if  token-setup/get-descriptor     exit then
+    get-interface?      if  token-setup/get-interface      exit then
+    get-status?         if  token-setup/get-status         exit then
+    set-address?        if  token-setup/set-address        exit then
+    set-configuration?  if  token-setup/set-configuration  exit then
+  \ set-descriptor?     if  token-setup/set-descriptor     exit then
+  \ set-feature?        if  token-setup/set-feature        exit then
+  \ set-interface?      if  token-setup/set-interface      exit then
+  \ synch-frame?        if  token-setup/synch-frame        exit then
     \ HID processing....
     handshake-stall ;
 
