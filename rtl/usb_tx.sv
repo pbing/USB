@@ -83,7 +83,7 @@ module usb_tx
      begin
         en_bit = (tx_state != RESET && tx_state != TX_WAIT && clk_counter == 4'd0);
 	sent   = (en_bit && bit_counter == 3'd7);
-	ready  = (tx_state != SEND_SYNC && sent && !stuffing);
+	ready  = (sent && !stuffing);
 	d_en   = (tx_state != RESET && tx_state != TX_WAIT);
      end
 
