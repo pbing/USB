@@ -16,9 +16,12 @@ h# 4020 constant io-key
 h# 4022 constant io-sw  
 
 \ USB endpoints
-h# 5000 constant io-endpi0-data
-h# 5002 constant io-endpi0-status
-h# 5004 constant io-endpo0-data
-h# 5006 constant io-endpo0-status
-h# 5008 constant io-endpi1-data
-h# 500a constant io-endpi1-status
+h# 5000 constant io-endpi0-status
+h# 5002 constant io-endpi1-status
+
+h# 5020 constant io-endpi0-data
+h# 5022 constant io-endpi1-data
+
+h# 5040 constant io-endpo0-status
+
+h# 5060 constant io-endpo0-data
