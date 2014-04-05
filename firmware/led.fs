@@ -5,7 +5,7 @@
 
 \ bit [7:0] LEDR, bit [15:6] LEDR
 : led! ( u -- )
-  dup io_ledg !  d# 6 rshift io_ledr ! ;
+  dup io-ledg !  d# 6 rshift io-ledr ! ;
 
 \ diplay LED arrays and rotate
 : led-walk ( u1 -- u2 )

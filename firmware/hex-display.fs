@@ -9,31 +9,31 @@ create hex-display-table
 
 \ use SW[0:3] in order to select different outputs
 : hex-select ( -- )
-  io_sw @ h# 1 and if
+  io-sw @ h# 1 and if
     \ SW[0]
-    h# 0 io_hex0 hex-display-digit!
-    h# 1 io_hex1 hex-display-digit!
-    h# 2 io_hex2 hex-display-digit!
-    h# 3 io_hex3 hex-display-digit!
-  else  io_sw @ h# 2 and if
+    h# 0 io-hex0 hex-display-digit!
+    h# 1 io-hex1 hex-display-digit!
+    h# 2 io-hex2 hex-display-digit!
+    h# 3 io-hex3 hex-display-digit!
+  else  io-sw @ h# 2 and if
     \ SW[1]
-    h# 4 io_hex0 hex-display-digit!
-    h# 5 io_hex1 hex-display-digit!
-    h# 6 io_hex2 hex-display-digit!
-    h# 7 io_hex3 hex-display-digit!
-  else  io_sw @ h# 4 and if
+    h# 4 io-hex0 hex-display-digit!
+    h# 5 io-hex1 hex-display-digit!
+    h# 6 io-hex2 hex-display-digit!
+    h# 7 io-hex3 hex-display-digit!
+  else  io-sw @ h# 4 and if
     \ SW[2]
-    h# 8 io_hex0 hex-display-digit!
-    h# 9 io_hex1 hex-display-digit!
-    h# a io_hex2 hex-display-digit!
-    h# b io_hex3 hex-display-digit!
-  else  io_sw @ h# 8 and if
+    h# 8 io-hex0 hex-display-digit!
+    h# 9 io-hex1 hex-display-digit!
+    h# a io-hex2 hex-display-digit!
+    h# b io-hex3 hex-display-digit!
+  else  io-sw @ h# 8 and if
     \ SW[3]
-    h# c io_hex0 hex-display-digit!
-    h# d io_hex1 hex-display-digit!
-    h# e io_hex2 hex-display-digit!
-    h# f io_hex3 hex-display-digit!
+    h# c io-hex0 hex-display-digit!
+    h# d io-hex1 hex-display-digit!
+    h# e io-hex2 hex-display-digit!
+    h# f io-hex3 hex-display-digit!
   else
     \ SW[0:3] off
-    h# 40 dup io_hex0 ! dup io_hex1 ! dup io_hex2 ! io_hex3 !
+    h# 40 dup io-hex0 ! dup io-hex1 ! dup io-hex2 ! io-hex3 !
   then then then then ;
