@@ -134,16 +134,19 @@ module usb_rx
 	error    = 1'b0;
 
 	case (rx_state)
-	  RX_DATA_WAIT0: active = 1'b1;
-	  RX_DATA_WAIT1: active = 1'b1;
-	  RX_DATA_WAIT2: active = 1'b1;
-	  RX_DATA_WAIT3: active = 1'b1;
-	  RX_DATA_WAIT4: active = 1'b1;
-	  RX_DATA_WAIT5: active = 1'b1;
-	  RX_DATA_WAIT6: active = 1'b1;
-	  RX_DATA_WAIT7: begin active = 1'b1; rcv_data = 1'b1; end
-	  RX_DATA      : active = 1'b1;
-	  ERROR        : error = 1'b1;
+	  RX_DATA_WAIT0,RX_DATA_WAIT1,RX_DATA_WAIT2,
+	  RX_DATA_WAIT3,RX_DATA_WAIT4,RX_DATA_WAIT5,
+	  RX_DATA_WAIT6,RX_DATA,STRIP_EOP0,STRIP_EOP1:
+	    active = 1'b1;
+
+	  RX_DATA_WAIT7:
+	    begin
+	       active = 1'b1;
+	       rcv_data = 1'b1;
+	    end
+
+	  ERROR:
+	    error = 1'b1;
 	endcase
      end
 

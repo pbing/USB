@@ -21,7 +21,7 @@ module usb_sie(input              clk,         // 24 MHz system clock
    /************************************************************************
     * Packet FSM
     ************************************************************************/
-   enum int unsigned {S_TOKEN[3],S_DATA_OUT[3],S_DATA_IN[5],S_ACK,S_NAK,S_STALL} fsm_packet_state,fsm_packet_next;
+   enum int unsigned {S_TOKEN[3],S_DATA_OUT[2],S_DATA_IN[5],S_ACK,S_NAK,S_STALL,S_LAST_BIT} fsm_packet_state,fsm_packet_next;
 
    always_ff @(posedge clk)
      if (transceiver.usb_reset)
@@ -83,14 +83,11 @@ module usb_sie(input              clk,         // 24 MHz system clock
 		 fsm_packet_next = S_TOKEN0;
 	       else
 		 if (!transceiver.rx_active)
-		   fsm_packet_next = S_DATA_OUT2;
+		   if (valid_crc16(crc16))
+		     fsm_packet_next = S_ACK;
+		   else
+		     fsm_packet_next = S_TOKEN0;
 	    end
-
-	  S_DATA_OUT2:
-	    if (valid_crc16(crc16))
-	      fsm_packet_next = S_ACK;
-	    else
-	      fsm_packet_next = S_TOKEN0;
 
 	  S_DATA_IN0:
 	    if (transceiver.tx_ready)
@@ -116,6 +113,10 @@ module usb_sie(input              clk,         // 24 MHz system clock
 
 	  /* handshake packet */
 	  S_ACK,S_NAK,S_STALL:
+	    if (transceiver.tx_ready)
+	      fsm_packet_next = S_LAST_BIT;
+
+	  S_LAST_BIT:
 	    if (transceiver.tx_ready)
 	      fsm_packet_next = S_TOKEN0;
 	endcase
@@ -244,6 +245,9 @@ module usb_sie(input              clk,         // 24 MHz system clock
 	       transceiver.tx_data  = {~STALL,STALL};
 	       transceiver.tx_valid = 1'b1;
 	    end
+
+	  S_LAST_BIT:
+	    transceiver.tx_valid = 1'b1;
 	endcase
      end
 
