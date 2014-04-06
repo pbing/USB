@@ -20,24 +20,19 @@ module shared_bus(input [3:0]    key,     // push button
 
 	if (io.rd)
 	  case (io.addr)
-	    KEY: io.din[3:0] = key;
-	    SW : io.din[9:0] = sw;
-
-	    ENDPO0_DATA:
-	      begin
-		 io.din[7:0]  = endpo0.q;
-		 endpo0.rdreq = 1'b1;
-	      end
-
-	    ENDPI0_STATUS: io.din[0] = endpi0.full;
-	    ENDPO0_STATUS: io.din[0] = endpo0.empty;
-	    ENDPI1_STATUS: io.din[0] = endpi1.full;
+	    KEY           : io.din[3:0] = key;
+	    SW            : io.din[9:0] = sw;
+	    ENDPO0_DATA   : io.din[7:0] = endpo0.q;
+	    ENDPI0_CONTROL: io.din[0]   = endpi0.full;
+	    ENDPO0_CONTROL: io.din[0]   = endpo0.empty;
+	    ENDPI1_CONTROL: io.din[0]   = endpi1.full;
 	  endcase
 
 	if (io.wr)
 	  case (io.addr)
-	    ENDPI0_DATA: endpi0.wrreq = 1'b1;
-	    ENDPI1_DATA: endpi1.wrreq = 1'b1;
+	    ENDPO0_CONTROL: endpo0.rdreq = io.dout[0];
+	    ENDPI0_DATA   : endpi0.wrreq = 1'b1;
+	    ENDPI1_DATA   : endpi1.wrreq = 1'b1;
 	  endcase
      end
 endmodule

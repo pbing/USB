@@ -59,10 +59,17 @@ variable wLength
 : configuration?     ( -- f )   wValue @ hibyte  %configuration = ;
 : string?            ( -- f )   wValue @ hibyte  %string = ;
 
-: endp-c@ ( u -- 8b  )   cells h# 5040 +  begin  dup @  while repeat  h# 20 +  @ ;
+\ Read from endpoint fifo:
+\  * check fifo.empty == 1'b0
+\  * assign 1'b1 to fifo.rd
+\  * read data from fifo.q
+: endp-c@ ( u -- 8b  )   cells io-endpo0-control +  begin  dup @  while repeat  d# 1 over !  h# 20 + @ ;
 : endp-@  ( u -- 16b )   dup endp-c@  swap endp-c@  lohi-pack ;
 
-: endp-c! ( 8b u --  )   cells h# 5000 +  begin  dup @  while repeat  h# 20 +  ! ;
+\ Write to endpoint fifo:
+\  * check fifo.full == 1'b0
+\  * write data to fifo.data
+: endp-c! ( 8b u --  )   cells io-endpi0-control +  begin  dup @  while repeat  h# 20 + ! ;
 : endp-!  ( 16b u -- )   >r  hilo  r@ endp-c!  r> endp-c! ;
 
 : receive-request ( -- )

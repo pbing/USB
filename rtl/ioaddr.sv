@@ -17,13 +17,13 @@ package ioaddr;
      SW             = 16'h4022,
 
      /* USB register */
-     ENDPI0_STATUS  = 16'h5000,
-     ENDPI1_STATUS  = 16'h5002,
+     ENDPI0_CONTROL = 16'h5000,
+     ENDPI1_CONTROL = 16'h5002,
      
      ENDPI0_DATA    = 16'h5020,
      ENDPI1_DATA    = 16'h5022,
      
-     ENDPO0_STATUS  = 16'h5040,
+     ENDPO0_CONTROL = 16'h5040,
      
      ENDPO0_DATA    = 16'h5060;
 endpackage
