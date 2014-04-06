@@ -83,11 +83,14 @@ module usb_sie(input              clk,         // 24 MHz system clock
 		 fsm_packet_next = S_TOKEN0;
 	       else
 		 if (!transceiver.rx_active)
-		   if (valid_crc16(crc16))
-		     fsm_packet_next = S_ACK;
-		   else
-		     fsm_packet_next = S_TOKEN0;
+		   fsm_packet_next = S_DATA_OUT2;
 	    end
+
+	  S_DATA_OUT2:
+	    if (valid_crc16(crc16))
+	      fsm_packet_next = S_ACK;
+	    else
+	      fsm_packet_next = S_TOKEN0;
 
 	  S_DATA_IN0:
 	    if (transceiver.tx_ready)
@@ -252,7 +255,7 @@ module usb_sie(input              clk,         // 24 MHz system clock
 	fifo_wrreq = 1'b0;
 
 	case (fsm_packet_state)
-	  S_DATA_OUT1,S_DATA_OUT2:
+	  S_DATA_OUT1:
 	    if (transceiver.rx_valid)
 	      fifo_wrreq = 1'b1;
 	endcase
