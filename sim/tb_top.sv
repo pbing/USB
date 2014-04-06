@@ -112,8 +112,7 @@ module tb_top;
 		.valid(tx_valid),
 		.ready(tx_ready));
 
-
-   initial forever #(tclk24/2) CLOCK_24 = ~CLOCK_24;
+    initial forever #(tclk24/2) CLOCK_24 = ~CLOCK_24;
 
    always_comb reset = ~KEY[0];
    always_comb clk = CLOCK_24;
@@ -135,13 +134,33 @@ module tb_top;
 	/* Setup Transaction */
 	send_token(SETUP,0,0);
 	send_data(DATA0,GET_DESCRIPTOR);
-	//receive_pid(ACK);
+	receive_pid(ACK);
 
+	/* Data Transaction */
+	#10us send_token(IN,0,0);
+	receive_data(SHORT_DEVICE_DESCRIPTOR);
+	#20us send_pid(ACK);
+
+	/* Status Transaction */
+	#10us send_token(OUT,0,0);
+	send_data(DATA0); // ZLP
+	receive_pid(ACK);
 
         #1ms $stop;
      end:main
 
+   task send_pid(input pid_t pid);
+      $display("%t %M(%p)",$realtime,pid);
+      /* PID */
+      @(posedge clk);
+      tx_valid <= 1'b1;
+      tx_data  <= {~pid,pid};
+      do @(posedge clk); while (!tx_ready);
 
+      /* wait for EOP */
+      do @(posedge clk); while (tx_d_en);
+   endtask
+   
    task send_token(input pid_t pid,input [6:0] addr,input [3:0] endp);
       /* PID */
       @(posedge clk);
@@ -193,6 +212,19 @@ module tb_top;
       do @(posedge clk); while (tx_d_en);
    endtask
 
+   task receive_data(input byte data[]='{});
+      #(8*tusb);
+      foreach (data[i])
+	#(8*tusb) $display("%t %M(%h)",$realtime,data[i]);
+      #(3*tusb);
+   endtask
+
+   task receive_pid(input pid_t pid);
+      #(8*tusb);     
+      #(8*tusb) $display("%t %M(%p)",$realtime,pid);
+      #(3*tusb);
+   endtask
+   
    function [4:0] crc5(input [10:0] d);
       const bit [4:0] crc5_poly=5'b10100,
 		      crc5_res =5'b00110;
