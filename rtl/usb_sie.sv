@@ -185,7 +185,7 @@ module usb_sie(input              clk,         // 24 MHz system clock
      begin
 	fifo_rdreq           = 1'b0;
 	transceiver.tx_valid = 1'b0;
-	transceiver.tx_data  = 8'bx;
+	transceiver.tx_data  = 8'b0; // avoid 1'bx for NRZI
 
 	case (fsm_packet_state)
 	  S_DATA_IN0:
