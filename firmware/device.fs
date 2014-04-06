@@ -74,7 +74,8 @@ variable wLength
 
 : receive-request ( -- )
     d# 0 endp-c@ bmRequestType !  d# 0 endp-c@ bRequest !
-    d# 0 endp-@ wValue !  d# 0 endp-@ wIndex !  d# 0 endp-@ wLength ! ;
+    d# 0 endp-@ wValue !  d# 0 endp-@ wIndex !  d# 0 endp-@ wLength !
+    d# 0 endp-@ ( crc16 ) 2drop ;
 
 \ returning handshakes
 \ FIXME
