@@ -30,8 +30,8 @@ module usb_cdr
 	  strobe <= 1'b0;
 
 	  priority case (1'b1)
-	    down  : dphase <= dphase-5'sd1;
-	    up    : dphase <= dphase+5'sd1;
+	    down  : dphase <= dphase - 5'sd1;
+	    up    : dphase <= dphase + 5'sd1;
 	    default if (phase == 4'd13) dphase <= 5'sd0;
 	  endcase
 
@@ -39,27 +39,27 @@ module usb_cdr
 	    4'd4:
 	      begin
 		 d_shift[1] <= d;
-		 phase      <= phase+4'sd1;
+		 phase      <= phase + 4'sd1;
 	      end
 
 	    4'd12:
 	      begin
 		 d_shift[2] <= d_shift[1];
-		 phase      <= phase+4'sd1;
+		 phase      <= phase + 4'sd1;
 		 strobe     <= 1'b1;
 	      end
 
 	    4'd13:
 	      if (dphase == 5'sd0)
-		phase <= phase+4'sd1;
+		phase <= phase + 4'sd1;
 	      else if (dphase>5'sd0)
-		phase <= phase+4'sd2;
+		phase <= phase + 4'sd2;
 	      else
 		/* skip phase increment when dphase is negative */
 		phase <= phase;
 
 	    default
-	      phase <= phase+4'sd1;
+	      phase <= phase + 4'sd1;
 	  endcase
 
        end

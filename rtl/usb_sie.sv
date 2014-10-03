@@ -350,10 +350,10 @@ module usb_sie(input              clk,         // 24 MHz system clock
       crc5 = '1;
 
       for (int i=$right(d);i<=$left(d);i++)
-	if (crc5[$right(crc5)]^d[i])
-	  crc5 = (crc5>>1)^crc5_poly;
+	if (crc5[$right(crc5)] ^ d[i])
+	  crc5 = (crc5 >> 1) ^ crc5_poly;
 	else
-	  crc5 = crc5>>1;
+	  crc5 = crc5 >> 1;
 
       valid_crc5 = (crc5_res == crc5);
    endfunction
@@ -373,10 +373,10 @@ module usb_sie(input              clk,         // 24 MHz system clock
       step_crc16 = crc16;
 
       for (int i=$right(d);i<=$left(d);i++)
-	if (step_crc16[$right(step_crc16)]^d[i])
-	  step_crc16 = (step_crc16>>1)^crc16_poly;
+	if (step_crc16[$right(step_crc16)] ^ d[i])
+	  step_crc16 = (step_crc16 >> 1) ^ crc16_poly;
 	else
-	  step_crc16 = step_crc16>>1;
+	  step_crc16 = step_crc16 >> 1;
    endfunction
 
    function valid_crc16(input [15:0] crc16);

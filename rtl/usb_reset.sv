@@ -16,7 +16,7 @@ module usb_reset
        counter <= 12'b0;
      else
        if (line_state == SE0)
-	 counter <= {^counter[10:12]^~counter[4],counter[$left(counter):$right(counter)-1]};
+	 counter <= {^counter[10:12] ^~ counter[4],counter[$left(counter):$right(counter) - 1]};
        else
 	 counter <= 12'b0;
 

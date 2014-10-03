@@ -174,7 +174,7 @@ module usb_rx
 	 if (num_ones == 3'd6)
 	   num_ones <= 3'd0;
 	 else
-	   num_ones <= num_ones+3'd1;
+	   num_ones <= num_ones + 3'd1;
        else
 	 num_ones <= 3'd0;
 

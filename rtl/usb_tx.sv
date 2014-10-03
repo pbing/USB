@@ -35,10 +35,10 @@ module usb_tx
 	    end
 	  else
 	    begin
-	       clk_counter <= clk_counter+2'd1;
+	       clk_counter <= clk_counter + 2'd1;
 
 	       if (clk_counter == 4'd15 && !stuffing)
-		 bit_counter <= bit_counter+3'd1;
+		 bit_counter <= bit_counter + 3'd1;
 	    end
        end
 
@@ -111,7 +111,7 @@ module usb_tx
    /* bit stuffing */
    logic tx_serial;
 
-   always_ff @(posedge clk) // FIXME
+   always_ff @(posedge clk)
      if (reset)
        num_ones <= 3'd0;
      else if (en_bit)
@@ -119,14 +119,18 @@ module usb_tx
 	 if (stuffing)
 	   num_ones <= 3'd0;
 	 else
-	   num_ones <= num_ones+3'd1;
+	   num_ones <= num_ones + 3'd1;
        else
 	 num_ones <= 3'd0;
 
    always_comb
      begin
 	stuffing  = (num_ones == 3'd6);
-	tx_serial = (stuffing)?1'b0:tx_shift[0];
+
+	if (stuffing)
+	  tx_serial = 1'b0;
+	else
+	  tx_serial = tx_shift[0];
      end
 
    /* NRZI coding */
@@ -136,14 +140,14 @@ module usb_tx
      if (reset)
        nrzi <= 1'b0;
      else if (en_bit)
-       nrzi <= tx_serial^~nrzi;
+       nrzi <= tx_serial ^~ nrzi;
 
    /* assign D+,D- */
    always_comb
      if (tx_state == SEND_EOP)
        /* two bit SE0, one bit J */
        begin
-	  if (bit_counter<3'd3)
+	  if (bit_counter < 3'd3)
 	    d_o = SE0;
 	  else
 	    d_o = J;
@@ -151,5 +155,8 @@ module usb_tx
      else if (tx_state == TX_WAIT)
        d_o = J;
      else
-       d_o = (nrzi)?K:J;
+       if(nrzi)
+	 d_o = K;
+       else
+	 d_o = J;
 endmodule
