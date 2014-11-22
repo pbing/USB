@@ -6,7 +6,7 @@ include basewords.fs
 target
 4 org
 
-module[ eveything"
+module[ everything"
 
 include nuc.fs
 include application.fs

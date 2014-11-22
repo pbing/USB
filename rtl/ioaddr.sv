@@ -18,12 +18,11 @@ package ioaddr;
 
      /* USB register */
      ENDPI0_CONTROL = 16'h5000,
-     ENDPI1_CONTROL = 16'h5002,
+     ENDPI0_DATA    = 16'h5002,
+
+     ENDPI1_CONTROL = 16'h5004,
+     ENDPI1_DATA    = 16'h5006,
      
-     ENDPI0_DATA    = 16'h5020,
-     ENDPI1_DATA    = 16'h5022,
-     
-     ENDPO0_CONTROL = 16'h5040,
-     
-     ENDPO0_DATA    = 16'h5060;
+     ENDPO0_CONTROL = 16'h5040,     
+     ENDPO0_DATA    = 16'h5042;
 endpackage

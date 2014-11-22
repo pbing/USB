@@ -2,11 +2,12 @@
 
 module usb_sie(input              clk,         // 24 MHz system clock
 	       if_transceiver.sie transceiver, // USB tranceiver interface
-	       if_fifo.master     endpi0,      // endpoint in 0
-	       if_fifo.master     endpo0,      // endpoint out 0
-	       if_fifo.master     endpi1);     // endpoint in 1
+	       if_io.slave        io,          // J1 I/O
+	       if_fifo.endpi      endpi0,      // endpoint in 0
+	       if_fifo.endpo      endpo0,      // endpoint out 0
+	       if_fifo.endpi      endpi1);     // endpoint in 1
 
-   import types::*;
+   import types::*, ioaddr::*;
 
    var token_t token;
 
@@ -14,14 +15,16 @@ module usb_sie(input              clk,         // 24 MHz system clock
    logic        packet_ready; // FIXME fsm_packet_state != S_TOKEN0 && transceiver.eop?
    logic [15:0] crc16;        // CRC16
 
-   logic        fifo_empty,fifo_full,
-		fifo_rdreq,fifo_wrreq;
-   logic [7:0]  fifo_q;
+   logic        endp_empty, endp_full,
+		endp_rdreq, endp_wrreq,
+		endp_stall;
+   logic [7:0]  endp_q;
+   logic        endpi0_stall, endpi1_stall;
 
    /************************************************************************
-    * Packet FSM
+    * packet FSM
     ************************************************************************/
-   enum int unsigned {S_TOKEN[3],S_DATA_OUT[2],S_DATA_IN[5],S_ACK,S_NAK,S_STALL,S_LAST_BIT} fsm_packet_state,fsm_packet_next;
+   enum int unsigned {S_TOKEN[3], S_DATA_OUT[2], S_DATA_IN[6], S_ACK, S_NAK, S_STALL, S_LAST_BIT} fsm_packet_state, fsm_packet_next;
 
    always_ff @(posedge clk)
      if (transceiver.usb_reset)
@@ -40,7 +43,7 @@ module usb_sie(input              clk,         // 24 MHz system clock
 	  /* token packet */
 	  S_TOKEN0:
 	    case (pid)
-	      OUT,IN,SETUP:
+	      OUT, IN, SETUP:
 		if (transceiver.rx_valid) fsm_packet_next = S_TOKEN1;
 
 	      default
@@ -65,21 +68,28 @@ module usb_sie(input              clk,         // 24 MHz system clock
 	    else
 	      if (!transceiver.rx_active)
 		if (token.pid == IN)
-		  fsm_packet_next=S_DATA_IN0;  // Device_do_IN
+
+		  if (endp_stall)
+		    fsm_packet_next = S_STALL;
+		  else if (endp_empty)
+		    fsm_packet_next = S_NAK;
+		  else
+		    fsm_packet_next = S_DATA_IN0;  // Device_do_IN
+
 		else
-		  fsm_packet_next=S_TOKEN0;
+		  fsm_packet_next = S_TOKEN0;
 
 	  /* data packet */
 	  S_DATA_OUT0:
 	    if (transceiver.rx_valid)
-	      if (!fifo_full && (pid == DATA0 || (pid == DATA1 && token.pid != SETUP)))
+	      if (!endp_full && (pid == DATA0 || (pid == DATA1 && token.pid != SETUP)))
 		fsm_packet_next = S_DATA_OUT1;
 	      else
 		fsm_packet_next = S_TOKEN0;
 
 	  S_DATA_OUT1:
 	    begin
-	       if (fifo_full && transceiver.rx_valid)
+	       if (endp_full && transceiver.rx_valid)
 		 fsm_packet_next = S_TOKEN0;
 	       else
 		 if (!transceiver.rx_active)
@@ -98,7 +108,7 @@ module usb_sie(input              clk,         // 24 MHz system clock
 
 	  S_DATA_IN2:
 	    if (transceiver.tx_ready)
-	      if (!fifo_empty)
+	      if (!endp_empty)
 		fsm_packet_next = S_DATA_IN1;
 	      else
 		fsm_packet_next = S_DATA_IN3;
@@ -109,10 +119,14 @@ module usb_sie(input              clk,         // 24 MHz system clock
 
 	  S_DATA_IN4:
 	    if (transceiver.tx_ready)
+	      fsm_packet_next = S_DATA_IN5;
+
+	  S_DATA_IN5:
+	    if (transceiver.tx_ready)
 	      fsm_packet_next = S_TOKEN0;
 
 	  /* handshake packet */
-	  S_ACK,S_NAK,S_STALL:
+	  S_ACK, S_NAK, S_STALL:
 	    if (transceiver.tx_ready)
 	      fsm_packet_next = S_LAST_BIT;
 
@@ -136,6 +150,7 @@ module usb_sie(input              clk,         // 24 MHz system clock
        end
      else
        case (fsm_packet_state)
+
 	 /* Save values during TOKEN stage. */
 	 S_TOKEN0:
 	   if (transceiver.rx_valid)
@@ -167,7 +182,7 @@ module usb_sie(input              clk,         // 24 MHz system clock
        crc16 <= 16'hffff;
      else
        case (fsm_packet_state)
-	 S_DATA_OUT0,S_DATA_IN0:
+	 S_DATA_OUT0, S_DATA_IN0:
 	   crc16 <= 16'hffff;
 
 	 S_DATA_OUT1:
@@ -183,38 +198,38 @@ module usb_sie(input              clk,         // 24 MHz system clock
     ************************************************************************/
    always_comb
      begin
-	fifo_rdreq           = 1'b0;
+	endp_rdreq           = 1'b0;
 	transceiver.tx_valid = 1'b0;
-	transceiver.tx_data  = 8'b0; // avoid 1'bx for NRZI
+	transceiver.tx_data  = 8'b0; // avoid X for NRZI
 
 	case (fsm_packet_state)
 	  S_DATA_IN0:
 	    begin
-	       transceiver.tx_data  = {~DATA0,DATA0};
+	       transceiver.tx_data  = {~DATA0, DATA0};
 	       transceiver.tx_valid = 1'b1;
 
 	       if (transceiver.tx_ready)
-		 fifo_rdreq = 1'b1;
+		 endp_rdreq = 1'b1;
 	    end
 
 	  S_DATA_IN1:
 	    begin
-	       transceiver.tx_data  = fifo_q;
+	       transceiver.tx_data  = endp_q;
 	       transceiver.tx_valid = 1'b1;
 	    end
 
 	  S_DATA_IN2:
 	    begin
-	       transceiver.tx_data  = fifo_q;
+	       transceiver.tx_data  = endp_q;
 	       transceiver.tx_valid = 1'b1;
 
-	       if (!fifo_empty && transceiver.tx_ready)
-		 fifo_rdreq = 1'b1;
+	       if (!endp_empty && transceiver.tx_ready)
+		 endp_rdreq = 1'b1;
 	    end
 
 	  S_DATA_IN3:
 	    begin
-	       for (int i=0;i<8;i++)
+	       for (int i = 0; i < 8; i++)
 		 transceiver.tx_data[i] = ~crc16[7-i];
 
 	       transceiver.tx_valid = 1'b1;
@@ -222,27 +237,30 @@ module usb_sie(input              clk,         // 24 MHz system clock
 
 	  S_DATA_IN4:
 	    begin
-	       for (int i=0;i<8;i++)
+	       for (int i = 0; i < 8; i++)
 		 transceiver.tx_data[i] = ~crc16[15-i];
 
 	       transceiver.tx_valid = 1'b1;
 	    end
 
+	  S_DATA_IN5:
+	       transceiver.tx_valid = 1'b1;
+
 	  S_ACK:
 	    begin
-	       transceiver.tx_data  = {~ACK,ACK};
+	       transceiver.tx_data  = {~ACK, ACK};
 	       transceiver.tx_valid = 1'b1;
 	    end
 
 	  S_NAK:
 	    begin
-	       transceiver.tx_data  = {~NAK,NAK};
+	       transceiver.tx_data  = {~NAK, NAK};
 	       transceiver.tx_valid = 1'b1;
 	    end
 
 	  S_STALL:
 	    begin
-	       transceiver.tx_data  = {~STALL,STALL};
+	       transceiver.tx_data  = {~STALL, STALL};
 	       transceiver.tx_valid = 1'b1;
 	    end
 
@@ -256,12 +274,12 @@ module usb_sie(input              clk,         // 24 MHz system clock
     ************************************************************************/
    always_comb
      begin
-	fifo_wrreq = 1'b0;
+	endp_wrreq = 1'b0;
 
 	case (fsm_packet_state)
 	  S_DATA_OUT1:
 	    if (transceiver.rx_valid)
-	      fifo_wrreq = 1'b1;
+	      endp_wrreq = 1'b1;
 	endcase
      end
 
@@ -270,53 +288,99 @@ module usb_sie(input              clk,         // 24 MHz system clock
     ************************************************************************/
    always_comb
      begin
-	endpi0.sclr = transceiver.usb_reset;
-	endpo0.sclr = transceiver.usb_reset;
-	endpi1.sclr = transceiver.usb_reset;
-     end
-
-   always_comb
-     endpo0.data = transceiver.rx_data;
-
-   always_comb
-     begin
-	fifo_full  = 1'bx;
-	fifo_empty = 1'bx;
-	fifo_q     = 8'bx;
+	endp_empty = 1'bx;
+	endp_full  = 1'bx;
+	endp_q     = 8'bx;
+	endp_stall = 1'bx;
+	io.din     = 16'b0; // Unused bits must be '0' because of OR bus connection.
 
 	case (token.endp)
 	  4'd0:
 	    begin
-	       fifo_full  = endpo0.full;
-	       fifo_empty = endpi0.empty;
-	       fifo_q     = endpi0.q;
+	       endp_empty = endpi0.empty;
+	       endp_q     = endpi0.q;
+	       endp_stall = endpi0_stall;
+	       endp_full  = endpo0.full;
 	    end
 
 	  4'd1:
 	    begin
-	       fifo_empty = endpi1.empty;
-	       fifo_q     = endpi1.q;
+	       endp_empty = endpi1.empty;
+	       endp_q     = endpi1.q;
+	       endp_stall = endpi1_stall;
 	    end
 	endcase
+
+	if (io.rd)
+	  case (io.addr)
+	    ENDPI0_CONTROL: io.din[0]   = endpi0.full;
+	    ENDPI1_CONTROL: io.din[0]   = endpi1.full;
+	    ENDPO0_CONTROL: io.din[0]   = endpo0.empty;
+	    ENDPO0_DATA   : io.din[7:0] = endpo0.q;
+	  endcase
      end
 
    always_comb
      begin
+	endpi0.data  = io.dout;
+	endpi0.sclr  = transceiver.usb_reset;
 	endpi0.rdreq = 1'b0;
+	endpi0.wrreq = 1'b0;
+
+	endpi1.data  = io.dout;
+	endpi1.sclr  = transceiver.usb_reset;
+	endpi1.wrreq = 1'b0;
 	endpi1.rdreq = 1'b0;
+
+	endpo0.data  = transceiver.rx_data;
+	endpo0.sclr  = transceiver.usb_reset;
+	endpo0.rdreq = 1'b0;
 	endpo0.wrreq = 1'b0;
 
 	case (token.endp)
 	  4'd0:
 	    begin
-	       endpi0.rdreq = fifo_rdreq;
-	       endpo0.wrreq = fifo_wrreq;
+	       endpi0.rdreq = endp_rdreq;
+	       endpo0.wrreq = endp_wrreq;
 	    end
 
 	  4'd1:
-	    endpi1.rdreq = fifo_rdreq;
+	    endpi1.rdreq = endp_rdreq;
 	endcase
+
+	if (io.wr)
+	  case (io.addr)
+	    ENDPI0_DATA   : endpi0.wrreq = 1'b1;
+	    ENDPI1_DATA   : endpi1.wrreq = 1'b1;
+	    ENDPO0_CONTROL: endpo0.rdreq = io.dout[1];
+	  endcase
      end
+
+   always_ff @(posedge clk)
+     if (transceiver.usb_reset)
+       endpi0_stall <= 1'b0;
+     else
+       if (token.endp == 4'd0)
+	 begin
+	    if (io.wr && (io.addr == ENDPI0_CONTROL))
+	      endpi0_stall = io.dout[1];
+
+	    if (fsm_packet_state == S_STALL)
+	      endpi0_stall = 1'b0;
+	 end
+
+   always_ff @(posedge clk)
+     if (transceiver.usb_reset)
+       endpi1_stall <= 1'b0;
+     else
+       if (token.endp == 4'd1)
+	 begin
+	    if (io.wr && (io.addr == ENDPI1_CONTROL))
+	      endpi1_stall = io.dout[1];
+
+	    if (fsm_packet_state == S_STALL)
+	      endpi1_stall = 1'b0;
+	 end
 
    /************************************************************************
     * Validy checks
@@ -330,11 +394,11 @@ module usb_sie(input              clk,         // 24 MHz system clock
     * Functions
     ************************************************************************/
    function valid_token(input token_t token);
-      valid_token = (token.pid == ~token.pidx) && valid_crc5({token.crc5,token.endp,token.addr});
+      valid_token = (token.pid == ~token.pidx) && valid_crc5({token.crc5, token.endp, token.addr});
    endfunction
 
    /*
-    * CRC5 = x^5 + x^2 + 1
+    * CRC5 = x⁵ + x² + 1
     *
     * If all token bits are received without error the residual will
     * be 5'b01100.
@@ -349,7 +413,7 @@ module usb_sie(input              clk,         // 24 MHz system clock
 
       crc5 = '1;
 
-      for (int i=$right(d);i<=$left(d);i++)
+      for (int i = $right(d); i <= $left(d); i++)
 	if (crc5[$right(crc5)] ^ d[i])
 	  crc5 = (crc5 >> 1) ^ crc5_poly;
 	else
@@ -359,7 +423,7 @@ module usb_sie(input              clk,         // 24 MHz system clock
    endfunction
 
    /*
-    * CRC16 = x^16 + x^15 + x^2 + 1
+    * CRC16 = x¹⁶ + x¹⁵ + x² + 1
     *
     * If all token bits are received without error the residual will
     * be 16'b1000000000001101.
@@ -372,7 +436,7 @@ module usb_sie(input              clk,         // 24 MHz system clock
 
       step_crc16 = crc16;
 
-      for (int i=$right(d);i<=$left(d);i++)
+      for (int i = $right(d); i <= $left(d); i++)
 	if (step_crc16[$right(step_crc16)] ^ d[i])
 	  step_crc16 = (step_crc16 >> 1) ^ crc16_poly;
 	else

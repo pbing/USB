@@ -32,9 +32,9 @@ interface if_fifo #(parameter addr_width=4,data_width=8);
    logic                  empty;  // FIFO empty
    logic                  full;   // FIFO full
 
-   modport master(output data,input q,input usedw,output sclr,output rdreq,output wrreq,input empty,input full);
+   modport endpo(output data,input q,input usedw,output sclr,output rdreq,output wrreq,input empty,input full);
 
-   modport slave(input data,output q,output usedw,input sclr,input rdreq,input wrreq,output empty,output full);
+   modport endpi(input data,output q,output usedw,output sclr,input rdreq,input wrreq,output empty,output full);
 endinterface:if_fifo
 
 interface if_io;

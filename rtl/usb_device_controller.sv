@@ -2,16 +2,17 @@
 
 module usb_device_controller
   import types::*;
-   (input           reset,    // reset
-    input           clk,      // system clock (24 MHz)
-    input  d_port_t d_i,      // USB port D+,D- (input)
-    output d_port_t d_o,      // USB port D+,D- (output)
-    output          d_en,     // USB port D+,D- (enable)
-    if_fifo.slave   endpi0,   // endpoint in 0
-    if_fifo.slave   endpo0,   // endpoint out 0
-    if_fifo.slave   endpi1);  // endpoint in 1
+   (input           reset, // reset
+    input           clk,   // system clock (24 MHz)
+    input  d_port_t d_i,   // USB port D+,D- (input)
+    output d_port_t d_o,   // USB port D+,D- (output)
+    output          d_en,  // USB port D+,D- (enable)
+    if_io.slave     io);   // J1 I/O
 
    if_transceiver transceiver();
+   if_fifo        endpi0();
+   if_fifo        endpo0();
+   if_fifo        endpi1();
 
    usb_transceiver usb_transceiver(.reset(reset),
 				   .clk(clk),
@@ -22,6 +23,7 @@ module usb_device_controller
 
    usb_sie usb_sie(.clk(clk),
 		   .transceiver(transceiver),
+		   .io(io),
 		   .endpi0(endpi0),
 		   .endpo0(endpo0),
 		   .endpi1(endpi1));

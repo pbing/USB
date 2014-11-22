@@ -137,7 +137,7 @@ module usb_tx
    logic nrzi;
 
    always_ff @(posedge clk)
-     if (reset)
+     if (reset || (tx_state == TX_WAIT))
        nrzi <= 1'b0;
      else if (en_bit)
        nrzi <= tx_serial ^~ nrzi;
@@ -152,11 +152,11 @@ module usb_tx
 	  else
 	    d_o = J;
        end
-     else if (tx_state == TX_WAIT)
-       d_o = J;
      else
-       if(nrzi)
-	 d_o = K;
-       else
-	 d_o = J;
+       begin
+	  if(nrzi)
+	    d_o = K;
+	  else
+	    d_o = J;
+       end
 endmodule

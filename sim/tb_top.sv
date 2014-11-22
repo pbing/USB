@@ -88,20 +88,29 @@ module tb_top;
    wire [35:0]  GPIO_0;                                 //      GPIO Connection 0
    wire [35:0]  GPIO_1;                                 //      GPIO Connection 1
 
-   logic        reset;     // reset
-   logic        clk;       // system clock (24 MHz)
-   var d_port_t d_i;       // USB port D+,D- (input)
-   var d_port_t tx_d_o;       // USB port D+,D- (output)
-   wire         tx_d_en;      // USB port D+,D- (enable)
-   bit   [7:0]  tx_data;   // data from SIE
-   bit          tx_valid;  // rise:SYNC,1:send data,fall:EOP
-   wire         tx_ready; // data has been sent
+   logic        reset;      // resetr
+   logic        clk;        // system clock (24 MHz)
+   var d_port_t d_i;        // USB port D+,D- (input)
+   var d_port_t tx_d_o;     // USB port D+,D- (output)
+   wire         tx_d_en;    // USB port D+,D- (enable)
+   bit   [7:0]  tx_data;    // data from SIE
+   bit          tx_valid;   // rise:SYNC,1:send data,fall:EOP
+   wire         tx_ready;   // data has been sent
 
-   byte GET_DESCRIPTOR[]='{8'h80,8'h06,8'h00,8'h01,8'h00,8'h00,8'h08,8'h00};
-   byte SHORT_DEVICE_DESCRIPTOR[]='{8'd18,8'h01,8'h10,8'h01,8'h00,8'h00,8'h00,8'h08};
-   byte DEVICE_DESCRIPTOR[]='{8'd18,8'h01,8'h10,8'h01,8'h00,8'h00,8'h00,8'h08,
-			      8'hd8,8'h04,8'h01,8'h00,8'h00,8'h02,8'h01,8'h02,
-			      8'h00,8'h01};
+   d_port_t     usb_d_i;
+   wire         rx_clk_en;  // RX clock enable
+   var d_port_t rx_d_i;     // RX data from CDR
+   var d_port_t line_state; // synchronized D+,D-
+   wire [7:0]   rx_data;    // recieved data
+   wire         rx_active;  // active between SYNC und EOP
+   wire         rx_valid;   // data valid pulse
+   wire         rx_error;   // error detected
+   
+   byte GET_DESCRIPTOR[]='{8'h80, 8'h06, 8'h00, 8'h01, 8'h00, 8'h00, 8'h08, 8'h00};
+   byte SHORT_DEVICE_DESCRIPTOR[]='{8'd18, 8'h01, 8'h10, 8'h01, 8'h00, 8'h00, 8'h00, 8'h08};
+   byte DEVICE_DESCRIPTOR[]='{8'd18, 8'h01, 8'h10, 8'h01, 8'h00, 8'h00, 8'h00, 8'h08, 
+			      8'hd8, 8'h04, 8'h01, 8'h00, 8'h00, 8'h02, 8'h01, 8'h02,
+			      8'h00, 8'h01};
    CII_Starter_TOP dut(.*);
 
    usb_tx tb_tx(.reset(reset),
@@ -112,16 +121,34 @@ module tb_top;
 		.valid(tx_valid),
 		.ready(tx_ready));
 
-    initial forever #(tclk24/2) CLOCK_24 = ~CLOCK_24;
+   usb_cdr tb_cdr (.reset(reset),
+		   .clk(clk),
+		   .d(usb_d_i),
+		   .q(rx_d_i),
+		   .line_state(line_state),
+		   .strobe(rx_clk_en));
+
+   usb_rx tb_rx (.reset(tx_valid),
+		 .clk(clk),
+		 .clk_en(rx_clk_en),
+		 .d_i(rx_d_i),
+		 .data(rx_data),
+		 .active(rx_active),
+		 .valid(rx_valid),
+		 .error());
+
+   initial forever #(tclk24/2) CLOCK_24 = ~CLOCK_24;
 
    always_comb reset = ~KEY[0];
    always_comb clk = CLOCK_24;
 
-   assign {GPIO_1[34],GPIO_1[32]} = (tx_d_en) ? tx_d_o : 2'bz;
+   assign {GPIO_1[34], GPIO_1[32]} = (tx_d_en) ? tx_d_o : 2'bz;
+   assign usb_d_i                 = d_port_t'({GPIO_1[34], GPIO_1[32]});
+
 
    initial
      begin:main
-	$timeformat(-9,3," ns");
+	$timeformat(-9, 3, " ns");
 
 	/* reset */
 	KEY[0]=1'b0;
@@ -132,17 +159,17 @@ module tb_top;
 	 **********************************************************************/
 
 	/* Setup Transaction */
-	send_token(SETUP,0,0);
-	send_data(DATA0,GET_DESCRIPTOR);
+	send_token(SETUP, 0, 0);
+	send_data(DATA0, GET_DESCRIPTOR);
 	receive_pid(ACK);
 
 	/* Data Transaction */
-	#10us send_token(IN,0,0);
-	receive_data(SHORT_DEVICE_DESCRIPTOR);
+	#10us send_token(IN, 0, 0);
+	receive_data(DATA0, SHORT_DEVICE_DESCRIPTOR);
 	#20us send_pid(ACK);
 
 	/* Status Transaction */
-	#10us send_token(OUT,0,0);
+	#10us send_token(OUT, 0, 0);
 	send_data(DATA0); // ZLP
 	receive_pid(ACK);
 
@@ -150,30 +177,30 @@ module tb_top;
      end:main
 
    task send_pid(input pid_t pid);
-      $display("%t %M(%p)",$realtime,pid);
       /* PID */
       @(posedge clk);
+      $display("%t %M(%p)", $realtime, pid);
       tx_valid <= 1'b1;
-      tx_data  <= {~pid,pid};
+      tx_data  <= {~pid, pid};
       do @(posedge clk); while (!tx_ready);
 
       /* wait for EOP */
       do @(posedge clk); while (tx_d_en);
    endtask
-   
-   task send_token(input pid_t pid,input [6:0] addr,input [3:0] endp);
+
+   task send_token(input pid_t pid, input [6:0] addr, input [3:0] endp);
       /* PID */
       @(posedge clk);
       tx_valid <= 1'b1;
-      tx_data  <= {~pid,pid};
+      tx_data  <= {~pid, pid};
       do @(posedge clk); while (!tx_ready);
 
       /* ADDR and first bit of ENDP */
-      tx_data = {endp[0],addr};
+      tx_data = {endp[0], addr};
       do @(posedge clk); while (!tx_ready);
 
       /* Rest of ENDP and CRC5 */
-      tx_data = {crc5({endp,addr}),endp[3:1]};
+      tx_data = {crc5({endp, addr}), endp[3:1]};
       do @(posedge clk); while (!tx_ready);
 
       /* wait for last byte */
@@ -184,15 +211,16 @@ module tb_top;
       do @(posedge clk); while (tx_d_en);
    endtask
 
-   task send_data(input pid_t pid,input byte data[]='{});
+   task send_data(input pid_t pid, input byte data[]='{});
       /* PID */
       @(posedge clk);
       tx_valid <= 1'b1;
-      tx_data  <= {~pid,pid};
+      tx_data  <= {~pid, pid};
       do @(posedge clk); while (!tx_ready);
 
       foreach (data[i])
 	begin
+	   $display("%t %M(%h)", $realtime, data[i]);
 	   tx_data = data[i];
 	   do @(posedge clk); while (!tx_ready);
 	end
@@ -212,19 +240,39 @@ module tb_top;
       do @(posedge clk); while (tx_d_en);
    endtask
 
-   task receive_data(input byte data[]='{});
-      #(8*tusb);
-      foreach (data[i])
-	#(8*tusb) $display("%t %M(%h)",$realtime,data[i]);
-      #(3*tusb);
+   task receive_data(input pid_t expected_pid, input byte expected_data[]='{});
+      receive_pid (expected_pid);
+
+      foreach (expected_data[i])
+	begin
+	   do @(posedge clk); while (!rx_valid);
+	   $display("%t %M(%h)", $realtime, rx_data);
+	   
+	   if (rx_data != expected_data[i])
+	     $display ("Error: %t %M (expected = %h, received = %h)", $realtime, expected_data[i], rx_data);
+	end
+
+      /* CRC */
+      repeat (2)
+	begin
+	   do @(posedge clk); while (!rx_valid);
+	end
    endtask
 
-   task receive_pid(input pid_t pid);
-      #(8*tusb);     
-      #(8*tusb) $display("%t %M(%p)",$realtime,pid);
-      #(3*tusb);
+   task receive_pid(input pid_t expected_pid);
+      pid_t received_pid;
+
+      /* PID */
+      do @(posedge clk); while (!rx_valid);
+      received_pid = pid_t'(rx_data);
+
+      if (received_pid == ACK || received_pid == NAK || received_pid == STALL)
+	$display("%t %M(%p)", $realtime, received_pid);
+
+      if (received_pid != expected_pid)
+	$display ("Error: %t %M (expected = %p, received = %p)", $realtime, expected_pid, received_pid);
    endtask
-   
+
    function [4:0] crc5(input [10:0] d);
       const bit [4:0] crc5_poly=5'b10100,
 		      crc5_res =5'b00110;
