@@ -1,13 +1,14 @@
 /* Evaluation Bord I/O */
 
-module board_io(input  wire             clk,   // clocka
-		input  wire             reset, // reset
-		input  wire  [3:0]      key,   // push buttons
-		input  wire  [9:0]      sw,    // toggle switches
-		output logic [0:3][6:0] hex,   // seven segment display
-		output logic [7:0]      ledg,  // led green
-		output logic [9:0]      ledr,  // led red
-		if_io.slave             io);   // J1 I/O
+module board_io
+  (input  wire             clk,   // clocka
+   input  wire             reset, // reset
+   input  wire  [3:0]      key,   // push buttons
+   input  wire  [9:0]      sw,    // toggle switches
+   output logic [0:3][6:0] hex,   // seven segment display
+   output logic [7:0]      ledg,  // led green
+   output logic [9:0]      ledr,  // led red
+   if_io.slave             io);   // J1 I/O
 
    import ioaddr::*;
 

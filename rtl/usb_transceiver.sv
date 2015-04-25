@@ -2,15 +2,15 @@
 
 module usb_transceiver
   import types::*;
-   (input  wire        reset,     // reset
-    input  wire        clk,       // system clock (24 MHz)
+   (input  wire        reset,        // reset
+    input  wire        clk,          // system clock (24 MHz)
 
     /* USB Bus */
-    input  d_port_t    d_i,       // USB port D+, D- (input)
-    output d_port_t    d_o,       // USB port D+, D- (output)
-    output wire        d_en,      // USB port D+, D- (enable)
+    input  d_port_t    d_i,          // USB port D+, D- (input)
+    output d_port_t    d_o,          // USB port D+, D- (output)
+    output wire        d_en,         // USB port D+, D- (enable)
 
-    if_transceiver.phy transceiver);
+    if_transceiver.phy transceiver); // USB tranceiver interface
 
    wire     rx_clk_en;  // RX clock enable
    d_port_t rx_d_i;     // RX data from CDR
@@ -19,7 +19,7 @@ module usb_transceiver
 
    usb_reset ubs_reset
      (.reset_i(reset),
-      .clk(clk), 
+      .clk(clk),
       .line_state(line_state),
       .reset_o(transceiver.usb_reset));
 

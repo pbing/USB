@@ -1,8 +1,9 @@
 /* Shared Bus implementation */
 
-module io_bus(if_io.slave  cpu,    // J1 I/O
-	      if_io.master sie,    // USB SIE
-	      if_io.master board); // evaluation board I/O
+module io_bus
+  (if_io.slave  cpu,    // J1 I/O
+   if_io.master sie,    // USB SIE
+   if_io.master board); // evaluation board I/O
 
    always_comb
      begin

@@ -10,13 +10,14 @@
  *     jamesb@willowgarage.com
  */
 
-module j1(input  wire         sys_clk_i, // main clock
-	  input  wire         sys_rst_i, // reset
-	  input  wire  [15:0] io_din,    // io data in
-	  output logic        io_rd,     // io read
-	  output logic        io_wr,     // io write
-	  output logic [15:0] io_addr,   // io address
-	  output logic [15:0] io_dout);  // io data out
+module j1
+  (input  wire         sys_clk_i, // main clock
+   input  wire         sys_rst_i, // reset
+   input  wire  [15:0] io_din,    // io data in
+   output logic        io_rd,     // io read
+   output logic        io_wr,     // io write
+   output logic [15:0] io_addr,   // io address
+   output logic [15:0] io_dout);  // io data out
 
    typedef enum logic [2:0] {TAG_UBRANCH, TAG_ZBRANCH, TAG_CALL, TAG_ALU} tag_t;
 
