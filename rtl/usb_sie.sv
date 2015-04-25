@@ -1,11 +1,9 @@
 /* USB Serial Interface Controller */
 
-module usb_sie(input  wire        clk,         // 24 MHz system clock
-	       if_transceiver.sie transceiver, // USB tranceiver interface
-	       if_io.slave        io,          // J1 I/O
-	       if_fifo            endpi0,      // endpoint in 0
-	       if_fifo            endpo0,      // endpoint out 0
-	       if_fifo            endpi1);     // endpoint in 1
+module usb_sie
+  (input  wire        clk,         // 24 MHz system clock
+   if_transceiver.sie transceiver, // USB tranceiver interface
+   if_io.slave        io);         // J1 I/O
 
    import types::*, ioaddr::*;
 
@@ -20,6 +18,43 @@ module usb_sie(input  wire        clk,         // 24 MHz system clock
 		endp_stall;
    logic [7:0]  endp_q;
    logic        endpi0_stall, endpi1_stall;
+
+   if_fifo endpi0();
+   if_fifo endpo0();
+   if_fifo endpi1();
+
+   fifo8x16 fifo_endpi0
+     (.clock(clk),
+      .data(endpi0.data),
+      .rdreq(endpi0.rdreq),
+      .sclr(endpi0.sclr),
+      .wrreq(endpi0.wrreq),
+      .empty(endpi0.empty),
+      .full(endpi0.full),
+      .q(endpi0.q),
+      .usedw(endpi0.usedw));
+
+   fifo8x16 fifo_endpo0
+     (.clock(clk),
+      .data(endpo0.data),
+      .rdreq(endpo0.rdreq),
+      .sclr(endpo0.sclr),
+      .wrreq(endpo0.wrreq),
+      .empty(endpo0.empty),
+      .full(endpo0.full),
+      .q(endpo0.q),
+      .usedw(endpo0.usedw));
+
+   fifo8x16 fifo_endpi1
+     (.clock(clk),
+      .data(endpi1.data),
+      .rdreq(endpi1.rdreq),
+      .sclr(endpi1.sclr),
+      .wrreq(endpi1.wrreq),
+      .empty(endpi1.empty),
+      .full(endpi1.full),
+      .q(endpi1.q),
+      .usedw(endpi1.usedw));
 
    /************************************************************************
     * packet FSM
