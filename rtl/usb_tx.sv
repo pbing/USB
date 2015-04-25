@@ -2,13 +2,13 @@
 
 module usb_tx
   import types::*;
-   (input           reset,  // reset
-    input           clk,    // system clock (24 MHz)
-    output d_port_t d_o,    // USB port D+,D- (output)
-    output logic    d_en,   // USB port D+,D- (enable)
-    input  [7:0]    data,   // data from SIE
-    input           valid,  // rise:SYNC,1:send data,fall:EOP
-    output logic    ready); // data has been sent
+   (input  wire        reset,  // reset
+    input  wire        clk,    // system clock (24 MHz)
+    output d_port_t    d_o,    // USB port D+,D- (output)
+    output logic       d_en,   // USB port D+,D- (enable)
+    input  wire  [7:0] data,   // data from SIE
+    input  wire        valid,  // rise:SYNC,1:send data,fall:EOP
+    output logic       ready); // data has been sent
 
    /* bit/byte enable */
    logic [3:0] clk_counter;  // 24 MHz/1.5 MHz = 16
@@ -18,7 +18,7 @@ module usb_tx
    logic       en_bit;       // enable bit
    logic       sent;         // data sent
 
-   enum int unsigned {RESET,TX_WAIT,SEND_SYNC,TX_DATA_LOAD,TX_DATA_WAIT,SEND_EOP} tx_state,tx_next;
+   enum int unsigned {RESET, TX_WAIT, SEND_SYNC, TX_DATA_LOAD, TX_DATA_WAIT, SEND_EOP} tx_state, tx_next;
 
    always_ff @(posedge clk)
      if (reset)
@@ -88,7 +88,7 @@ module usb_tx
      end
 
    /* TX load/shift register */
-   logic [7:0] tx_load,tx_shift;
+   logic [7:0] tx_load, tx_shift;
 
    always_ff @(posedge clk)
      if (reset)
@@ -106,7 +106,7 @@ module usb_tx
 	 if (tx_state == TX_DATA_LOAD)
 	   tx_shift <= tx_load;               // load
 	 else
-	   tx_shift <= {1'bx,tx_shift[7-:7]}; // shift
+	   tx_shift <= {1'bx, tx_shift[7-:7]}; // shift
 
    /* bit stuffing */
    logic tx_serial;
@@ -142,7 +142,7 @@ module usb_tx
      else if (en_bit)
        nrzi <= tx_serial ^~ nrzi;
 
-   /* assign D+,D- */
+   /* assign D+, D- */
    always_comb
      if (tx_state == SEND_EOP)
        /* two bit SE0, one bit J */

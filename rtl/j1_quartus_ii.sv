@@ -10,20 +10,20 @@
  *     jamesb@willowgarage.com
  */
 
-module j1(input               sys_clk_i, // main clock
-	  input               sys_rst_i, // reset
-	  input        [15:0] io_din,    // io data in
+module j1(input  wire         sys_clk_i, // main clock
+	  input  wire         sys_rst_i, // reset
+	  input  wire  [15:0] io_din,    // io data in
 	  output logic        io_rd,     // io read
 	  output logic        io_wr,     // io write
 	  output logic [15:0] io_addr,   // io address
 	  output logic [15:0] io_dout);  // io data out
 
-   typedef enum logic [2:0] {TAG_UBRANCH,TAG_ZBRANCH,TAG_CALL,TAG_ALU} tag_t;
+   typedef enum logic [2:0] {TAG_UBRANCH, TAG_ZBRANCH, TAG_CALL, TAG_ALU} tag_t;
 
-   typedef enum logic [3:0] {OP_T,OP_N,OP_T_PLUS_N,OP_T_AND_N,
-			     OP_T_IOR_N,OP_T_XOR_N,OP_INV_T,OP_N_EQ_T,
-			     OP_N_LS_T,OP_N_RSHIFT_T,OP_T_MINUS_1,OP_R,
-			     OP_AT,OP_N_LSHIFT_T,OP_DEPTH,OP_N_ULS_T} op_t;
+   typedef enum logic [3:0] {OP_T, OP_N, OP_T_PLUS_N, OP_T_AND_N,
+			     OP_T_IOR_N, OP_T_XOR_N, OP_INV_T, OP_N_EQ_T,
+			     OP_N_LS_T, OP_N_RSHIFT_T, OP_T_MINUS_1, OP_R,
+			     OP_AT, OP_N_LSHIFT_T, OP_DEPTH, OP_N_ULS_T} op_t;
 
    typedef struct packed {
       logic        tag;
@@ -51,12 +51,12 @@ module j1(input               sys_clk_i, // main clock
    var   lit_t  insn_lit;  // LIT instruction
    var   bra_t  insn_bra;  // BRANCH instruction
    var   alu_t  insn_alu;  // ALU instruction
-   logic [12:0] _pc,pc,    // processor counter
+   logic [12:0] _pc, pc,    // processor counter
 		pc_plus_1; // processor counter + 1
    logic        io_sel;    // I/O select
 
    /* select instruction types */
-   logic is_lit,is_ubranch,is_zbranch,is_call,is_alu;
+   logic is_lit, is_ubranch, is_zbranch, is_call, is_alu;
 
    /* RAM */
    wire  [15:0] ramrd;  // RAM read data
@@ -64,29 +64,28 @@ module j1(input               sys_clk_i, // main clock
 
    /* data stack */
    logic        [15:0] dstack[32]; // data stack memory
-   logic        [4:0]  _dsp,dsp;   // data stack pointer
-   logic        [15:0] _st0,st0;   // top of data stack
+   logic        [4:0]  _dsp, dsp;  // data stack pointer
+   logic        [15:0] _st0, st0;  // top of data stack
    logic        [15:0] st1;        // next of data stack
    logic               _dstkW;     // data stack write
 
    /* return stack */
    logic        [15:0] rstack[32]; // return stack memory
-   logic        [4:0]  _rsp,rsp;   // return stack pointer
+   logic        [4:0]  _rsp, rsp;  // return stack pointer
    logic        [15:0]  rst0;      // top of return stack
    logic        [15:0] _rstkD;     // return stack data
    logic               _rstkW;     // return stack write
 
-   dpram8kx16 dpram(.clock(sys_clk_i),
-
-		    .address_a(_pc),
-		    .data_a(16'h0),
-		    .wren_a(1'b0),
-		    .q_a(insn),
-
-		    .address_b(_st0[13:1]),
-		    .data_b(st1),
-		    .wren_b(_ramWE),
-		    .q_b(ramrd));
+   dpram8kx16 dpram
+     (.clock(sys_clk_i),
+      .address_a(_pc),
+      .data_a(16'h0),
+      .wren_a(1'b0),
+      .q_a(insn),
+      .address_b(_st0[13:1]),
+      .data_b(st1),
+      .wren_b(_ramWE),
+      .q_b(ramrd));
 
    /* data and return stack */
    always_ff @(posedge sys_clk_i)
@@ -121,7 +120,7 @@ module j1(input               sys_clk_i, // main clock
    /* calculate next TOS value */
    always_comb
      if (is_lit)
-       _st0  = {1'b0,insn_lit.immediate};
+       _st0  = {1'b0, insn_lit.immediate};
      else
        begin
 	  var op_t op;
@@ -149,7 +148,7 @@ module j1(input               sys_clk_i, // main clock
             OP_R         : _st0 = rst0;
             OP_AT        : _st0 = (io_sel) ? io_din : ramrd;
             OP_N_LSHIFT_T: _st0 = st1 << st0[3:0];
-            OP_DEPTH     : _st0 = {3'b0,rsp,3'b0,dsp};
+            OP_DEPTH     : _st0 = {3'b0, rsp, 3'b0, dsp};
             OP_N_ULS_T   : _st0 = {16{(st1 < st0)}};
             default        _st0 = 16'hx;
 	  endcase
@@ -187,7 +186,7 @@ module j1(input               sys_clk_i, // main clock
 	/* ALU operations */
 	else if (is_alu)
 	  begin
-	     logic signed [4:0] dd,rd; // stack delta
+	     logic signed [4:0] dd, rd; // stack delta
 
 	     dd     = insn_alu.dstack;
 	     rd     = insn_alu.rstack;

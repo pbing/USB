@@ -4,17 +4,17 @@
 
 module usb_cdr
   import types::*;
-   (input           reset,          // system reset
-    input           clk,            // system clock (24 MHz)
+   (input  wire     reset,          // system reset
+    input  wire     clk,            // system clock (24 MHz)
     input  d_port_t d,              // data from PHY
     output d_port_t q,              // retimed data
-    output d_port_t line_state,     // synchronized D+,D-
+    output d_port_t line_state,     // synchronized D+, D-
     output logic    strobe);        // data strobe
 
    logic [3:0]        phase;        // phase (24 MHz/1.5 MHz = 16)
    logic signed [4:0] dphase;       // delta phase
    var d_port_t       d_shift[1:2]; // shifted data
-   logic              up,down;      // phase shift direction
+   logic              up, down;     // phase shift direction
 
    always_ff @(posedge clk)
      if (reset)

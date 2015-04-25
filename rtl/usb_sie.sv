@@ -1,11 +1,11 @@
 /* USB Serial Interface Controller */
 
-module usb_sie(input              clk,         // 24 MHz system clock
+module usb_sie(input  wire        clk,         // 24 MHz system clock
 	       if_transceiver.sie transceiver, // USB tranceiver interface
 	       if_io.slave        io,          // J1 I/O
-	       if_fifo.endpi      endpi0,      // endpoint in 0
-	       if_fifo.endpo      endpo0,      // endpoint out 0
-	       if_fifo.endpi      endpi1);     // endpoint in 1
+	       if_fifo            endpi0,      // endpoint in 0
+	       if_fifo            endpo0,      // endpoint out 0
+	       if_fifo            endpi1);     // endpoint in 1
 
    import types::*, ioaddr::*;
 
@@ -244,7 +244,7 @@ module usb_sie(input              clk,         // 24 MHz system clock
 	    end
 
 	  S_DATA_IN5:
-	       transceiver.tx_valid = 1'b1;
+	    transceiver.tx_valid = 1'b1;
 
 	  S_ACK:
 	    begin

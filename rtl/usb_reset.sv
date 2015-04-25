@@ -4,8 +4,8 @@
 
 module usb_reset
   import types::*;
-   (input           reset_i,    // system reset input
-    input           clk,        // system clock (24 MHz)
+   (input  wire     reset_i,    // system reset input
+    input  wire     clk,        // system clock (24 MHz)
     input  d_port_t line_state, // data from PHY
     output logic    reset_o);   // reset output
 
@@ -16,7 +16,7 @@ module usb_reset
        counter <= 12'b0;
      else
        if (line_state == SE0)
-	 counter <= {^counter[10:12] ^~ counter[4],counter[$left(counter):$right(counter) - 1]};
+	 counter <= {^counter[10:12] ^~ counter[4], counter[$left(counter):$right(counter) - 1]};
        else
 	 counter <= 12'b0;
 

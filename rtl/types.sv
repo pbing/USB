@@ -2,8 +2,8 @@
 
 package types;
    /* Symbols J and K have inverse polarity in each USB mode */
-   typedef enum logic [1:0] {SE0,J,K,SE1} d_port_t; // Low Speed (1.5 MHz)
-   //typedef enum logic [1:0] {SE0,K,J,SE1} d_port_t; // Full Speed (12 MHz)
+   typedef enum logic [1:0] {SE0, J, K, SE1} d_port_t; // Low Speed (1.5 MHz)
+   //typedef enum logic [1:0] {SE0, K, J, SE1} d_port_t; // Full Speed (12 MHz)
 
    /* Packets */
    typedef enum logic [3:0] {/* Token */

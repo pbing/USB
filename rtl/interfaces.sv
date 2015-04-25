@@ -6,7 +6,7 @@ interface if_transceiver;
 
    /* TX */
    logic [7:0] tx_data;   // data from SIE
-   logic       tx_valid;  // rise:SYNC,1:send data,fall:EOP
+   logic       tx_valid;  // rise:SYNC, 1:send data, fall:EOP
    logic       tx_ready;  // data has been sent
 
    /* RX */
@@ -15,14 +15,14 @@ interface if_transceiver;
    logic       rx_valid;  // data valid pulse
    logic       rx_error;  // error detected
 
-   modport sie(input usb_reset,output tx_data,output tx_valid,input tx_ready,
-               input rx_data,input rx_active,input rx_valid,input rx_error);
+   modport sie(input usb_reset, output tx_data, output tx_valid, input tx_ready,
+               input rx_data, input rx_active, input rx_valid, input rx_error);
 
-   modport phy(input usb_reset,input tx_data,input tx_valid,output tx_ready,
-               output rx_data,output rx_active,output rx_valid,output rx_error);
+   modport phy(output usb_reset, input tx_data, input tx_valid, output tx_ready,
+               output rx_data, output rx_active, output rx_valid, output rx_error);
 endinterface:if_transceiver
 
-interface if_fifo #(parameter addr_width=4,data_width=8);
+interface if_fifo #(parameter addr_width=4, data_width=8);
    logic [data_width-1:0] data;   // input data
    logic [data_width-1:0] q;      // output data
    logic [addr_width-1:0] usedw;  // used words
@@ -31,10 +31,6 @@ interface if_fifo #(parameter addr_width=4,data_width=8);
    logic                  wrreq;  // write request
    logic                  empty;  // FIFO empty
    logic                  full;   // FIFO full
-
-   modport endpo(output data,input q,input usedw,output sclr,output rdreq,output wrreq,input empty,input full);
-
-   modport endpi(input data,output q,output usedw,output sclr,input rdreq,input wrreq,output empty,output full);
 endinterface:if_fifo
 
 interface if_io;
@@ -44,7 +40,7 @@ interface if_io;
    logic [15:0] addr; // io address
    logic [15:0] dout; // io data out
 
-   modport master(input din,output rd,output wr,output addr,output dout);
+   modport master(input din, output rd, output wr, output addr, output dout);
 
-   modport slave(output din,input rd,input wr,input addr,input dout);
+   modport slave(output din, input rd, input wr, input addr, input dout);
 endinterface:if_io

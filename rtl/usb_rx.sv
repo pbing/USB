@@ -2,16 +2,16 @@
 
 module usb_rx
   import types::*;
-   (input              reset,  // system reset
-    input              clk,    // system clock (24 MHz)
-    input              clk_en, // clock enable
+   (input  wire        reset,  // system reset
+    input  wire        clk,    // system clock (24 MHz)
+    input  wire        clk_en, // clock enable
     input  d_port_t    d_i,    // data from CDR
     output logic [7:0] data,   // data to SIE
     output logic       active, // active between SYNC und EOP
     output logic       valid,  // data valid pulse
     output logic       error); // error detected
 
-   logic j,k,se0;
+   logic j, k, se0;
 
    always_comb j   = (d_i == J);
    always_comb k   = (d_i == K);
@@ -24,8 +24,8 @@ module usb_rx
     * because automatic FSM detection of Synplify does not work
     * in this case.
     *************************************************************/
-   enum int unsigned {RESET,SYNC[8],RX_DATA_WAIT[8],RX_DATA,STRIP_EOP[2],ERROR,ABORT[1:2],TERMINATE} rx_state,rx_next;
-   logic             rcv_bit,rcv_data;
+   enum int unsigned {RESET, SYNC[8], RX_DATA_WAIT[8], RX_DATA, STRIP_EOP[2], ERROR, ABORT[1:2], TERMINATE} rx_state, rx_next;
+   logic             rcv_bit, rcv_data;
 
    always_ff @(posedge clk)
      if (reset)
@@ -43,32 +43,32 @@ module usb_rx
 
 	  SYNC0:
 	    if (j) rx_next = SYNC1;
-	    else  rx_next = RESET;
+	    else   rx_next = RESET;
 
 	  SYNC1:
 	    if (k) rx_next = SYNC2;
-	    else  rx_next = RESET;
+	    else   rx_next = RESET;
 
 	  SYNC2:
 	    if (j) rx_next = SYNC3;
-	    else  rx_next = RESET;
+	    else   rx_next = RESET;
 
 	  SYNC3:
 	    if (k) rx_next = SYNC4;
-	    else  rx_next = RESET;
+	    else   rx_next = RESET;
 
 
 	  SYNC4:
 	    if (j) rx_next = SYNC5;
-	    else  rx_next = RESET;
+	    else   rx_next = RESET;
 
 	  SYNC5:
 	    if (k) rx_next = SYNC6;
-	    else  rx_next = RESET;
+	    else   rx_next = RESET;
 
 	  SYNC6:
 	    if (k) rx_next = SYNC7;
-	    else  rx_next = RESET;
+	    else   rx_next = RESET;
 
 	  SYNC7:
 	    rx_next = RX_DATA_WAIT0;
@@ -134,14 +134,14 @@ module usb_rx
 	error    = 1'b0;
 
 	case (rx_state)
-	  RX_DATA_WAIT0,RX_DATA_WAIT1,RX_DATA_WAIT2,
-	  RX_DATA_WAIT3,RX_DATA_WAIT4,RX_DATA_WAIT5,
-	  RX_DATA_WAIT6,RX_DATA,STRIP_EOP0,STRIP_EOP1:
+	  RX_DATA_WAIT0, RX_DATA_WAIT1, RX_DATA_WAIT2,
+	  RX_DATA_WAIT3, RX_DATA_WAIT4, RX_DATA_WAIT5,
+	  RX_DATA_WAIT6, RX_DATA, STRIP_EOP0, STRIP_EOP1:
 	    active = 1'b1;
 
 	  RX_DATA_WAIT7:
 	    begin
-	       active = 1'b1;
+	       active   = 1'b1;
 	       rcv_data = 1'b1;
 	    end
 
@@ -153,7 +153,7 @@ module usb_rx
    /*************************************************************
     * NRZI decoding
     *************************************************************/
-   logic nrzi,d0;
+   logic nrzi, d0;
 
    always_ff @(posedge clk)
      if (reset)
@@ -194,7 +194,7 @@ module usb_rx
 	else if (clk_en)
 	  begin
 	     /* RX shift register */
-	     if (rcv_bit) rx_shift <= {d0,rx_shift[7-:7]};
+	     if (rcv_bit) rx_shift <= {d0, rx_shift[7-:7]};
 
 	     /* RX hold register */
 	     if (rcv_data) data <= rx_shift;

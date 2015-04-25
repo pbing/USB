@@ -22,7 +22,7 @@ package ioaddr;
 
      ENDPI1_CONTROL = 16'h5004,
      ENDPI1_DATA    = 16'h5006,
-     
-     ENDPO0_CONTROL = 16'h5040,     
+
+     ENDPO0_CONTROL = 16'h5040,
      ENDPO0_DATA    = 16'h5042;
 endpackage
