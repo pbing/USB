@@ -105,45 +105,54 @@ module tb_top;
    wire         rx_active;  // active between SYNC und EOP
    wire         rx_valid;   // data valid pulse
    wire         rx_error;   // error detected
-   
-   byte GET_DESCRIPTOR[]='{8'h80, 8'h06, 8'h00, 8'h01, 8'h00, 8'h00, 8'h08, 8'h00};
-   byte SHORT_DEVICE_DESCRIPTOR[]='{8'd18, 8'h01, 8'h10, 8'h01, 8'h00, 8'h00, 8'h00, 8'h08};
-   byte DEVICE_DESCRIPTOR[]='{8'd18, 8'h01, 8'h10, 8'h01, 8'h00, 8'h00, 8'h00, 8'h08, 
-			      8'hd8, 8'h04, 8'h01, 8'h00, 8'h00, 8'h02, 8'h01, 8'h02,
-			      8'h00, 8'h01};
-   CII_Starter_TOP dut(.*);
 
-   usb_tx tb_tx(.reset(reset),
-		.clk(clk),
-		.d_o(tx_d_o),
-		.d_en(tx_d_en),
-		.data(tx_data),
-		.valid(tx_valid),
-		.ready(tx_ready));
+   byte GET_DESCRIPTOR[]          = '{8'h80, 8'h06, 8'h00, 8'h01, 8'h00, 8'h00, 8'h08, 8'h00};
 
-   usb_cdr tb_cdr (.reset(reset),
-		   .clk(clk),
-		   .d(usb_d_i),
-		   .q(rx_d_i),
-		   .line_state(line_state),
-		   .strobe(rx_clk_en));
+   byte SHORT_DEVICE_DESCRIPTOR[] = '{8'd18, 8'h01, 8'h10, 8'h01, 8'h00, 8'h00, 8'h00, 8'h08};
 
-   usb_rx tb_rx (.reset(tx_valid),
-		 .clk(clk),
-		 .clk_en(rx_clk_en),
-		 .d_i(rx_d_i),
-		 .data(rx_data),
-		 .active(rx_active),
-		 .valid(rx_valid),
-		 .error());
+   byte DEVICE_DESCRIPTOR[]       = '{8'd18, 8'h01, 8'h10, 8'h01, 8'h00, 8'h00, 8'h00, 8'h08,
+				      8'hd8, 8'h04, 8'h01, 8'h00, 8'h00, 8'h02, 8'h01, 8'h02,
+				      8'h00, 8'h01};
+
+   int rpt; // report file ID
+
+   CII_Starter_TOP dut
+     (.*);
+
+   usb_tx tb_tx
+     (.reset(reset),
+      .clk(clk),
+      .d_o(tx_d_o),
+      .d_en(tx_d_en),
+      .data(tx_data),
+      .valid(tx_valid),
+      .ready(tx_ready));
+
+   usb_cdr tb_cdr
+     (.reset(reset),
+      .clk(clk),
+      .d(usb_d_i),
+      .q(rx_d_i),
+      .line_state(line_state),
+      .strobe(rx_clk_en));
+
+   usb_rx tb_rx
+     (.reset(tx_valid),
+      .clk(clk),
+      .clk_en(rx_clk_en),
+      .d_i(rx_d_i),
+      .data(rx_data),
+      .active(rx_active),
+      .valid(rx_valid),
+      .error());
 
    initial forever #(tclk24/2) CLOCK_24 = ~CLOCK_24;
 
    always_comb reset = ~KEY[0];
-   always_comb clk = CLOCK_24;
+   always_comb clk   = CLOCK_24;
 
    assign {GPIO_1[34], GPIO_1[32]} = (tx_d_en) ? tx_d_o : 2'bz;
-   assign usb_d_i                 = d_port_t'({GPIO_1[34], GPIO_1[32]});
+   assign usb_d_i                  = d_port_t'({GPIO_1[34], GPIO_1[32]});
 
 
    initial
@@ -151,8 +160,8 @@ module tb_top;
 	$timeformat(-9, 3, " ns");
 
 	/* reset */
-	KEY[0]=1'b0;
-        #100ns KEY[0]=1'b1;
+	KEY[0] = 1'b0;
+        #100ns KEY[0] = 1'b1;
 
 	/**********************************************************************
 	 * Control Read Transfer
@@ -173,8 +182,21 @@ module tb_top;
 	send_data(DATA0); // ZLP
 	receive_pid(ACK);
 
-        #1ms $stop;
+        #100us $finish;
      end:main
+
+   /* observe endpoints */
+   initial rpt = $fopen("strobe.rpt");
+
+   always @(posedge clk)
+     begin
+	if (dut.usb_device_controller.usb_sie.endpi0.wrreq) $fdisplay(rpt, "%t endpi0(device.w): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpi0.data);
+	if (dut.usb_device_controller.usb_sie.endpi0.rdreq) $fstrobe (rpt, "%t endpi0(  host.r): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpi0.q);
+	if (dut.usb_device_controller.usb_sie.endpi1.wrreq) $fdisplay(rpt, "%t endpi1(device.w): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpi1.data);
+	if (dut.usb_device_controller.usb_sie.endpi1.rdreq) $fstrobe (rpt, "%t endpi1(  host.r): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpi1.q);
+	if (dut.usb_device_controller.usb_sie.endpo0.wrreq) $fdisplay(rpt, "%t endpo0(  host.w): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpo0.data);
+	if (dut.usb_device_controller.usb_sie.endpo0.rdreq) $fstrobe (rpt, "%t endpo0(device.r): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpo0.q);
+     end
 
    task send_pid(input pid_t pid);
       /* PID */
@@ -183,6 +205,7 @@ module tb_top;
       tx_valid <= 1'b1;
       tx_data  <= {~pid, pid};
       do @(posedge clk); while (!tx_ready);
+      tx_valid = 1'b0;
 
       /* wait for EOP */
       do @(posedge clk); while (tx_d_en);
@@ -191,6 +214,7 @@ module tb_top;
    task send_token(input pid_t pid, input [6:0] addr, input [3:0] endp);
       /* PID */
       @(posedge clk);
+      $display("%t %M(pid=%p, addr=%d, endp=%d)", $realtime, pid, addr, endp);
       tx_valid <= 1'b1;
       tx_data  <= {~pid, pid};
       do @(posedge clk); while (!tx_ready);
@@ -220,15 +244,16 @@ module tb_top;
 
       foreach (data[i])
 	begin
-	   $display("%t %M(%h)", $realtime, data[i]);
 	   tx_data = data[i];
+	   $display("%t %M(%h)", $realtime, tx_data);
 	   do @(posedge clk); while (!tx_ready);
 	end
 
       /* CRC16 */
-      for(int i=0;i<16;i+=8)
+      for (int i=0;i<16;i+=8)
 	begin
 	   tx_data = crc16(data)[7+i-:8];
+	   $display("%t %M(%h) CRC", $realtime, tx_data);
 	   do @(posedge clk); while (!tx_ready);
 	end
 
@@ -247,7 +272,7 @@ module tb_top;
 	begin
 	   do @(posedge clk); while (!rx_valid);
 	   $display("%t %M(%h)", $realtime, rx_data);
-	   
+
 	   if (rx_data != expected_data[i])
 	     $display ("Error: %t %M (expected = %h, received = %h)", $realtime, expected_data[i], rx_data);
 	end
@@ -274,33 +299,33 @@ module tb_top;
    endtask
 
    function [4:0] crc5(input [10:0] d);
-      const bit [4:0] crc5_poly=5'b10100,
-		      crc5_res =5'b00110;
+      const bit [4:0] crc5_poly = 5'b10100,
+		      crc5_res  = 5'b00110;
 
-      crc5='1;
+      crc5 = '1;
 
-      for(int i=$right(d);i<=$left(d);i++)
-	if(crc5[$right(crc5)]^d[i])
-	  crc5=(crc5>>1)^crc5_poly;
+      for (int i = $right(d); i <= $left(d); i++)
+	if (crc5[$right(crc5)] ^ d[i])
+	  crc5 = (crc5 >> 1) ^ crc5_poly;
 	else
-	  crc5=crc5>>1;
+	  crc5 = crc5 >> 1;
 
-      crc5=~crc5;
+      crc5 = ~crc5;
    endfunction
 
-   function [15:0] crc16(input byte d[]='{});
-      const bit [15:0] crc16_poly=16'b1010000000000001,
-		       crc16_res =16'b1011000000000001;
+   function [15:0] crc16(input byte d[] = '{});
+      const bit [15:0] crc16_poly = 16'b1010000000000001,
+		       crc16_res  = 16'b1011000000000001;
 
-      crc16='1;
+      crc16 = '1;
 
-      foreach(d[j])
-	for(int i=$right(d[j]);i<=$left(d[j]);i++)
-	  if(crc16[$right(crc16)]^d[j][i])
-	    crc16=(crc16>>1)^crc16_poly;
+      foreach (d[j])
+	for (int i = $right(d[j]); i <= $left(d[j]); i++)
+	  if (crc16[$right(crc16)] ^ d[j][i])
+	    crc16 = (crc16 >> 1) ^ crc16_poly;
 	  else
-	    crc16=crc16>>1;
+	    crc16 = crc16 >> 1;
 
-      crc16=~crc16;
+      crc16 = ~crc16;
    endfunction
 endmodule
