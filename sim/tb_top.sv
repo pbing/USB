@@ -186,7 +186,7 @@ module tb_top;
      end:main
 
    /* observe endpoints */
-   initial rpt = $fopen("strobe.rpt");
+   initial rpt = $fopen("end_points.rpt");
 
    always @(posedge clk)
      begin
