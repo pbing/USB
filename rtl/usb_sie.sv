@@ -1,4 +1,4 @@
-/* USB Serial Interface Controller */
+/* USB Serial Interface Engine */
 
 module usb_sie
   (input  wire        clk,         // 24 MHz system clock
@@ -399,25 +399,21 @@ module usb_sie
 
    always_ff @(posedge clk)
      if (transceiver.usb_reset)
-       endpi0_stall <= 1'b0;
+       begin
+	  endpi0_stall <= 1'b0;
+	  endpi0_zlp   <= 1'b0;
+       end
      else
        if (token.endp == 4'd0)
 	 begin
 	    if (io.wr && (io.addr == ENDPI0_CONTROL))
-	      endpi0_stall <= io.dout[1];
+	      begin
+		 endpi0_stall <= io.dout[1];
+		 endpi0_zlp   <= io.dout[2];
+	      end
 
 	    if (fsm_packet_state == S_STALL)
 	      endpi0_stall <= 1'b0;
-	 end
-
-   always_ff @(posedge clk)
-     if (transceiver.usb_reset)
-       endpi0_zlp <= 1'b0;
-     else
-       if (token.endp == 4'd0)
-	 begin
-	    if (io.wr && (io.addr == ENDPI0_CONTROL))
-	      endpi0_zlp <= io.dout[2];
 
 	    if (fsm_packet_state == S_DATA_IN3)
 	      endpi0_zlp <= 1'b0;
@@ -425,25 +421,21 @@ module usb_sie
 
    always_ff @(posedge clk)
      if (transceiver.usb_reset)
-       endpi1_stall <= 1'b0;
-     else
-       if (token.endp == 4'd1)
-	 begin
-	    if (io.wr && (io.addr == ENDPI1_CONTROL))
-	      endpi1_stall <= io.dout[1];
-
-	    if (fsm_packet_state == S_STALL)
-	      endpi1_stall <= 1'b0;
-	 end
-
-   always_ff @(posedge clk)
-     if (transceiver.usb_reset)
-       endpi1_zlp <= 1'b0;
+       begin
+	  endpi1_stall <= 1'b0;
+	  endpi1_zlp   <= 1'b0;
+       end
      else
        if (token.endp == 4'd0)
 	 begin
 	    if (io.wr && (io.addr == ENDPI1_CONTROL))
-	      endpi1_zlp <= io.dout[2];
+	      begin
+		 endpi1_stall <= io.dout[1];
+		 endpi1_zlp   <= io.dout[2];
+	      end
+
+	    if (fsm_packet_state == S_STALL)
+	      endpi1_stall <= 1'b0;
 
 	    if (fsm_packet_state == S_DATA_IN3)
 	      endpi1_zlp <= 1'b0;
