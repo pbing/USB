@@ -14,7 +14,7 @@ variable usb-state
 3 constant config-state
 
 variable usb-pending-address
-variable usb-address
+variable usb-address \ FIXME use register, e.g io-usb-address
 
 variable bmRequestType
 Variable bRequest
@@ -79,10 +79,18 @@ variable wLength
 
 : receive-request ( -- )
     h# 100 io-ledr !
-    endp0-c@ bmRequestType !  endp0-c@ bRequest !
-    endp0-@ wValue !  endp0-@ wIndex !  endp0-@ wLength !
+    endp0-c@ bmRequestType !
+    h# 101 io-ledr !
+    endp0-c@ bRequest !
+    h# 102 io-ledr !
+    endp0-@ wValue !
+    h# 103 io-ledr !
+    endp0-@ wIndex !
+    h# 104 io-ledr !
+    endp0-@ wLength !
+    h# 105 io-ledr !
     endp0-@ ( crc16) 2drop
-    h# 101 io-ledr ! ;
+    h# 106 io-ledr ! ;
 
 \ returning handshakes
 : handshake-stall ( -- )   h# 2 io-endpi0-control ! ;
@@ -90,8 +98,8 @@ variable wLength
 \ discard CRC16 from ZLP
 : read-0-length-packet ( --)   endp0-@ ( crc16) 2drop ;
 
-\ FIXME
-: 0-length-packet ( -- )          ;
+\ return IN data
+: 0-length-packet ( -- )          h# 4 io-endpi0-control !          read-0-length-packet ;
 : 1-length-packet ( n -- )        endp0-c!                          read-0-length-packet ;
 : 2-length-packet ( n1 n2 -- )    endp0-!                           read-0-length-packet ;
 : data-packets    ( addr u -- )   0do  count  endp0-c!  loop  drop  read-0-length-packet ;
@@ -188,6 +196,8 @@ variable wLength
 \ SET CONFIGURATION
 \ ======================================================================
 
+\ Configuration value n must be zero or match the configuration value
+\ from the configuration descriptor.
 : valid-configuration?  ( n -- f )
     h# 62 io-ledr !
     dup 0=  swap configuration-descriptor h# 5 + ( bConfigurationValue) c@ =  or ;
@@ -200,7 +210,10 @@ variable wLength
     wValue @ lobyte
     dup valid-configuration? invert  if  drop handshake-stall  exit then
     0= if  address-state usb-state !  else  config-state  usb-state !  then
-    0-length-packet  ( configure device...) ;
+    0-length-packet
+    \ configure device
+    usb-pending-address usb-address ! ;
+    
 
 : token-setup/set-configuration ( -- )
     h# 60 io-ledr !
