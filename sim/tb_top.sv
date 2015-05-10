@@ -106,13 +106,21 @@ module tb_top;
    wire         rx_valid;   // data valid pulse
    wire         rx_error;   // error detected
 
-   byte GET_DESCRIPTOR[]          = '{8'h80, 8'h06, 8'h00, 8'h01, 8'h00, 8'h00, 8'h08, 8'h00};
+   const byte GET_DESCRIPTOR[]          = '{8'h80, 8'h06, 8'h00, 8'h01, 8'h00, 8'h00, 8'h12, 8'h00};
 
-   byte SHORT_DEVICE_DESCRIPTOR[] = '{8'd18, 8'h01, 8'h10, 8'h01, 8'h00, 8'h00, 8'h00, 8'h08};
+   const byte SHORT_DEVICE_DESCRIPTOR[] = '{8'd18, 8'h01, 8'h10, 8'h01, 8'h00, 8'h00, 8'h00, 8'h08};
 
-   byte DEVICE_DESCRIPTOR[]       = '{8'd18, 8'h01, 8'h10, 8'h01, 8'h00, 8'h00, 8'h00, 8'h08,
-				      8'hd8, 8'h04, 8'h01, 8'h00, 8'h00, 8'h02, 8'h01, 8'h02,
-				      8'h00, 8'h01};
+   const byte DEVICE_DESCRIPTOR[]       = '{8'd18, 8'h01, 8'h10, 8'h01, 8'h00, 8'h00, 8'h00, 8'h08,
+					    8'hd8, 8'h04, 8'h01, 8'h00, 8'h00, 8'h02, 8'h01, 8'h02,
+					    8'h00, 8'h01};
+
+   const byte SET_ADDRESS[]             = '{8'h00, 8'h05, 8'hx, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00};
+
+   const byte SET_CONFIGURATION[]       = '{8'h00, 8'h09, 8'h01, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00};
+
+   byte get_descriptor[] = GET_DESCRIPTOR;
+   byte set_address[]    = SET_ADDRESS;
+   byte addr;
 
    int rpt; // report file ID
 
@@ -155,6 +163,20 @@ module tb_top;
    assign usb_d_i                  = d_port_t'({GPIO_1[34], GPIO_1[32]});
 
 
+
+   /* observe endpoints */
+   initial rpt = $fopen("end_points.rpt");
+
+   always @(posedge clk)
+     begin:monitor_endp
+	if (dut.usb_device_controller.usb_sie.endpi0.wrreq) $fdisplay(rpt, "%t endpi0(device.w): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpi0.data);
+	if (dut.usb_device_controller.usb_sie.endpi0.rdreq) $fstrobe (rpt, "%t endpi0(  host.r): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpi0.q);
+	if (dut.usb_device_controller.usb_sie.endpi1.wrreq) $fdisplay(rpt, "%t endpi1(device.w): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpi1.data);
+	if (dut.usb_device_controller.usb_sie.endpi1.rdreq) $fstrobe (rpt, "%t endpi1(  host.r): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpi1.q);
+	if (dut.usb_device_controller.usb_sie.endpo0.wrreq) $fdisplay(rpt, "%t endpo0(  host.w): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpo0.data);
+	if (dut.usb_device_controller.usb_sie.endpo0.rdreq) $fstrobe (rpt, "%t endpo0(device.r): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpo0.q);
+     end:monitor_endp
+
    initial
      begin:main
 	$timeformat(-9, 3, " ns");
@@ -163,40 +185,64 @@ module tb_top;
 	KEY[0] = 1'b0;
         #100ns KEY[0] = 1'b1;
 
-	/**********************************************************************
-	 * Control Read Transfer
-	 **********************************************************************/
+	/* GET_DESCRIPTOR (short) */
+	get_descriptor[6] = 8'd08; 
+	get_descriptor[7] = 8'd00; 
+	#30us control_read_transfer(get_descriptor, SHORT_DEVICE_DESCRIPTOR, 0, 0);
 
-	/* Setup Transaction */
-	send_token(SETUP, 0, 0);
-	send_data(DATA0, GET_DESCRIPTOR);
-	receive_pid(ACK);
+	/* SET_ADDRESS */
+	addr = {$random % 8'h80};
+	set_address[2] = addr;
+	#30us control_write_transfer(set_address, '{}, 0, 0);
 
-	/* Data Transaction */
-	#10us send_token(IN, 0, 0);
-	receive_data(DATA0, SHORT_DEVICE_DESCRIPTOR);
-	#20us send_pid(ACK);
+	/* SET_CONFIGURATION */
+	#30us control_write_transfer(SET_CONFIGURATION, '{}, 0, 0);
 
-	/* Status Transaction */
-	#10us send_token(OUT, 0, 0);
-	send_data(DATA0); // ZLP
-	receive_pid(ACK);
+	/* GET_DESCRIPTOR (full) */
+	#30us control_read_transfer(GET_DESCRIPTOR, DEVICE_DESCRIPTOR, 0/*addr*/, 0);
 
-        #1ms $finish;
+        #100us $stop;
      end:main
 
-   /* observe endpoints */
-   initial rpt = $fopen("end_points.rpt");
+   /**********************************************************************
+    * Tasks
+    **********************************************************************/
 
-   always @(posedge clk)
-     begin
-	if (dut.usb_device_controller.usb_sie.endpi0.wrreq) $fdisplay(rpt, "%t endpi0(device.w): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpi0.data);
-	if (dut.usb_device_controller.usb_sie.endpi0.rdreq) $fstrobe (rpt, "%t endpi0(  host.r): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpi0.q);
-	if (dut.usb_device_controller.usb_sie.endpi1.wrreq) $fdisplay(rpt, "%t endpi1(device.w): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpi1.data);
-	if (dut.usb_device_controller.usb_sie.endpi1.rdreq) $fstrobe (rpt, "%t endpi1(  host.r): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpi1.q);
-	if (dut.usb_device_controller.usb_sie.endpo0.wrreq) $fdisplay(rpt, "%t endpo0(  host.w): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpo0.data);
-	if (dut.usb_device_controller.usb_sie.endpo0.rdreq) $fstrobe (rpt, "%t endpo0(device.r): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpo0.q);
-     end
+   task control_read_transfer(input byte command[], result[], input [6:0] addr, input [3:0] endp);
+
+      /* Setup Transaction */
+      send_token(SETUP, addr, endp);
+      send_data(DATA0, command);
+      receive_pid(ACK);
+
+      /* Data Transaction */
+      #10us send_token(IN, addr, endp);
+      receive_data(DATA0, result);
+      #20us send_pid(ACK);
+
+      /* Status Transaction */
+      #10us send_token(OUT, addr, endp);
+      send_data(DATA0); // ZLP
+      receive_pid(ACK);
+   endtask
+
+   task control_write_transfer(input byte command[], data[], input [6:0] addr, input [3:0] endp);
+
+      /* Setup Transaction */
+      send_token(SETUP, addr, endp);
+      send_data(DATA0, command);
+      receive_pid(ACK);
+
+      /* Data Transaction */
+      #10us send_token(OUT, addr, endp);
+      send_data(DATA0, data);
+      receive_pid(ACK);
+
+      /* Status Transaction */
+      #10us send_token(IN, addr, endp);
+      receive_data(DATA0); // ZLP
+      #20us send_pid(ACK);
+   endtask
 
    task send_pid(input pid_t pid);
       /* PID */
@@ -300,6 +346,10 @@ module tb_top;
       if (received_pid != expected_pid)
 	$display ("Error: %t %M (expected = %p, received = %p)", $realtime, expected_pid, received_pid);
    endtask
+
+   /**********************************************************************
+    * Functions
+    **********************************************************************/
 
    function [4:0] crc5(input [10:0] d);
       const bit [4:0] crc5_poly = 5'b10100,
