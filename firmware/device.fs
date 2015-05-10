@@ -81,16 +81,20 @@ variable wLength
     h# 100 io-ledr !
     endp0-c@ bmRequestType !  endp0-c@ bRequest !
     endp0-@ wValue !  endp0-@ wIndex !  endp0-@ wLength !
-    endp0-@ ( crc16) 2drop ;
+    endp0-@ ( crc16) 2drop
+    h# 101 io-ledr ! ;
 
 \ returning handshakes
 : handshake-stall ( -- )   h# 2 io-endpi0-control ! ;
 
+\ discard CRC16 from ZLP
+: read-0-length-packet ( --)   endp0-@ ( crc16) 2drop ;
+
 \ FIXME
 : 0-length-packet ( -- )          ;
-: 1-length-packet ( n -- )         endp0-c! ;
-: 2-length-packet ( n1 n2 -- )     endp0-!  ;
-: data-packets    ( addr u -- )    0do  count  endp0-c!  loop  drop ;
+: 1-length-packet ( n -- )        endp0-c!                          read-0-length-packet ;
+: 2-length-packet ( n1 n2 -- )    endp0-!                           read-0-length-packet ;
+: data-packets    ( addr u -- )   0do  count  endp0-c!  loop  drop  read-0-length-packet ;
 
 \ return the descriptor index
 : descriptor-index ( -- index )   wValue @ lobyte ;
