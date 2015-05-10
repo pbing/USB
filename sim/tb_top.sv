@@ -182,7 +182,7 @@ module tb_top;
 	send_data(DATA0); // ZLP
 	receive_pid(ACK);
 
-        #100us $finish;
+        #1ms $finish;
      end:main
 
    /* observe endpoints */
@@ -204,6 +204,9 @@ module tb_top;
       $display("%t %M(%p)", $realtime, pid);
       tx_valid <= 1'b1;
       tx_data  <= {~pid, pid};
+      do @(posedge clk); while (!tx_ready);
+
+      /* wait for last byte */
       do @(posedge clk); while (!tx_ready);
       tx_valid = 1'b0;
 
@@ -250,7 +253,7 @@ module tb_top;
 	end
 
       /* CRC16 */
-      for (int i=0;i<16;i+=8)
+      for (int i = 0; i < 16; i += 8)
 	begin
 	   tx_data = crc16(data)[7+i-:8];
 	   $display("%t %M(%h) CRC", $realtime, tx_data);
