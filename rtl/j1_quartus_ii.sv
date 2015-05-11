@@ -52,7 +52,7 @@ module j1
    var   lit_t  insn_lit;  // LIT instruction
    var   bra_t  insn_bra;  // BRANCH instruction
    var   alu_t  insn_alu;  // ALU instruction
-   logic [12:0] _pc, pc,    // processor counter
+   logic [12:0] _pc, pc,   // processor counter
 		pc_plus_1; // processor counter + 1
    logic        io_sel;    // I/O select
 
