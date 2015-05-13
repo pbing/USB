@@ -24,3 +24,5 @@ h# 5006 constant io-endpi1-data
 
 h# 5040 constant io-endpo0-control
 h# 5042 constant io-endpo0-data
+
+h# 5100 constant io-usb-control

@@ -185,21 +185,21 @@ module tb_top;
 	KEY[0] = 1'b0;
         #100ns KEY[0] = 1'b1;
 
-	/* GET_DESCRIPTOR (short) */
-	get_descriptor[6] = 8'd08; 
-	get_descriptor[7] = 8'd00; 
+	get_descriptor[6] = 8'd08;
+	get_descriptor[7] = 8'd00;
+	$display("GET_DESCRIPTOR (short)");
 	#30us control_read_transfer(get_descriptor, SHORT_DEVICE_DESCRIPTOR, 0, 0);
 
-	/* SET_ADDRESS */
 	addr = {$random % 8'h80};
 	set_address[2] = addr;
+	$display("SET_ADDRESS('h%h)", addr);
 	#30us control_write_transfer(set_address, '{}, 0, 0);
 
-	/* SET_CONFIGURATION */
-	#30us control_write_transfer(SET_CONFIGURATION, '{}, 0, 0);
+	$display("SET_CONFIGURATION");
+	#30us control_write_transfer(SET_CONFIGURATION, '{}, addr, 0);
 
-	/* GET_DESCRIPTOR (full) */
-	#30us control_read_transfer(GET_DESCRIPTOR, DEVICE_DESCRIPTOR, 0/*addr*/, 0);
+	$display("GET_DESCRIPTOR (full)");
+	#30us control_read_transfer(GET_DESCRIPTOR, DEVICE_DESCRIPTOR, addr, 0);
 
         #100us $stop;
      end:main
@@ -263,7 +263,7 @@ module tb_top;
    task send_token(input pid_t pid, input [6:0] addr, input [3:0] endp);
       /* PID */
       @(posedge clk);
-      $display("%t %M(pid=%p, addr=%d, endp=%d)", $realtime, pid, addr, endp);
+      $display("%t %M(pid=%p, addr='h%h, endp=%d)", $realtime, pid, addr, endp);
       tx_valid <= 1'b1;
       tx_data  <= {~pid, pid};
       do @(posedge clk); while (!tx_ready);

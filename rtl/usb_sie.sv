@@ -69,9 +69,11 @@ module usb_sie
 
    always_comb
      begin
-	var pid_t pid;
+	var pid_t   pid;
+	logic [6:0] addr;
 
 	pid             = pid_t'(transceiver.rx_data[3:0]);
+	addr            = transceiver.rx_data[6:0];
 	fsm_packet_next = fsm_packet_state;
 
 	case (fsm_packet_state)
@@ -86,7 +88,11 @@ module usb_sie
 	    endcase
 
 	  S_TOKEN1:
-	    if (transceiver.rx_valid) fsm_packet_next = S_TOKEN2;
+	    if (transceiver.rx_valid)
+	      if (addr == device_addr)
+		fsm_packet_next = S_TOKEN2;
+	      else
+		fsm_packet_next = S_TOKEN0;
 
 	  S_TOKEN2:
 	    if (transceiver.rx_valid)
@@ -358,6 +364,7 @@ module usb_sie
 	    ENDPI1_CONTROL: io.din[0]   = endpi1.full;
 	    ENDPO0_CONTROL: io.din[0]   = endpo0.empty;
 	    ENDPO0_DATA   : io.din[7:0] = endpo0.q;
+	    USB_CONTROL   : io.din      = {5'b0, token.pid, device_addr};
 	  endcase
      end
 
@@ -404,20 +411,22 @@ module usb_sie
 	  endpi0_zlp   <= 1'b0;
        end
      else
-       if (token.endp == 4'd0)
-	 begin
-	    if (io.wr && (io.addr == ENDPI0_CONTROL))
-	      begin
-		 endpi0_stall <= io.dout[1];
-		 endpi0_zlp   <= io.dout[2];
-	      end
+       begin
+	  if (io.wr && (io.addr == ENDPI0_CONTROL))
+	    begin
+	       endpi0_stall <= io.dout[1];
+	       endpi0_zlp   <= io.dout[2];
+	    end
 
-	    if (fsm_packet_state == S_STALL)
-	      endpi0_stall <= 1'b0;
+	  if (token.endp == 4'd0)
+	    begin
+	       if (fsm_packet_state == S_STALL)
+		 endpi0_stall <= 1'b0;
 
-	    if (fsm_packet_state == S_DATA_IN3)
-	      endpi0_zlp <= 1'b0;
-	 end
+	       if (fsm_packet_state == S_DATA_IN3)
+		 endpi0_zlp <= 1'b0;
+	    end
+       end
 
    always_ff @(posedge clk)
      if (transceiver.usb_reset)
@@ -426,20 +435,32 @@ module usb_sie
 	  endpi1_zlp   <= 1'b0;
        end
      else
-       if (token.endp == 4'd0)
-	 begin
-	    if (io.wr && (io.addr == ENDPI1_CONTROL))
-	      begin
-		 endpi1_stall <= io.dout[1];
-		 endpi1_zlp   <= io.dout[2];
-	      end
+       begin
+	  if (io.wr && (io.addr == ENDPI1_CONTROL))
+	    begin
+	       endpi1_stall <= io.dout[1];
+	       endpi1_zlp   <= io.dout[2];
+	    end
 
-	    if (fsm_packet_state == S_STALL)
-	      endpi1_stall <= 1'b0;
+	  if (token.endp == 4'd1)
+	    begin
+	       if (fsm_packet_state == S_STALL)
+		 endpi1_stall <= 1'b0;
 
-	    if (fsm_packet_state == S_DATA_IN3)
-	      endpi1_zlp <= 1'b0;
-	 end
+	       if (fsm_packet_state == S_DATA_IN3)
+		 endpi1_zlp <= 1'b0;
+	    end
+       end
+
+   /************************************************************************
+    * USB_CONTROL register
+    ************************************************************************/
+   always_ff @(posedge clk)
+     if (transceiver.usb_reset)
+       device_addr <= 7'h0;
+     else
+       if (io.wr && (io.addr == USB_CONTROL))
+	 device_addr <= io.dout[6:0];
 
    /************************************************************************
     * Validy checks

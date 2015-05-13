@@ -14,7 +14,6 @@ variable usb-state
 3 constant config-state
 
 variable usb-pending-address
-variable usb-address \ FIXME use register, e.g io-usb-address
 
 variable bmRequestType
 Variable bRequest
@@ -24,12 +23,12 @@ variable wLength
 
 : usb-init  ( -- )
     powered-state usb-state !
-    h# 0 usb-pending-address !  h# 0 usb-address !
+    h# 0 usb-pending-address !  h# 0 io-usb-control !
 ;
 
 : usb-reset ( -- )
     default-state usb-state !
-    h# 0 usb-pending-address !  h# 0 usb-address !
+    h# 0 usb-pending-address !  h# 0 io-usb-control !
 ;
 
 : powered-state? ( -- f )  usb-state @ powered-state = ;
@@ -61,21 +60,24 @@ variable wLength
 
 \ Read from endpoint fifo
 : endp-c@ ( u -- 8b  )   2* cells io-endpo0-control +
-    begin  dup @  h# 1 and  while repeat \ wait for io-endpo*.empty == 1'b0
-    h# 2 over !                          \ assign 1'b1 to io-endpo*-control.rdreq
-    cell+ @ ;                            \ read data from io-endpo*-data
+    begin  dup@  h# 1 and  while repeat \ wait for io-endpo*.empty == 1'b0
+    h# 2 over !                         \ assign 1'b1 to io-endpo*-control.rdreq
+    cell+ @ ;                           \ read data from io-endpo*-data
 : endp-@  ( u -- 16b )   dup endp-c@  swap endp-c@  lohi-pack ;
 
 \ Write to endpoint fifo
 : endp-c! ( 8b u --  )   2* cells io-endpi0-control +
-    begin  dup @  h# 1 and  while repeat \ wait for io-endpi*-control.full == 1'b0
-    cell+ ! ;                            \ write data to io-endpi*-data
+    begin  dup@  h# 1 and  while repeat \ wait for io-endpi*-control.full == 1'b0
+    cell+ ! ;                           \ write data to io-endpi*-data
 : endp-!  ( 16b u -- )   >r  hilo  r@ endp-c!  r> endp-c! ;
 
 : endp0-c@ ( -- 8b  )   d# 0 endp-c@ ;
 : endp0-@  ( -- 16b )   d# 0 endp-@ ;
 : endp0-c! ( 8b --  )   d# 0 endp-c! ;
 : endp0-!  ( 16b -- )   d# 0 endp-! ;
+
+\ Discard CRC16 after every DATA0 or DATA1 from host.
+: discard-crc ( -- )   endp0-@ 2drop ;
 
 : receive-request ( -- )
     h# 100 io-ledr !
@@ -89,21 +91,30 @@ variable wLength
     h# 104 io-ledr !
     endp0-@ wLength !
     h# 105 io-ledr !
-    endp0-@ ( crc16) 2drop
+    discard-crc \ from SETUP/DATA0
     h# 106 io-ledr ! ;
 
-\ returning handshakes
 : handshake-stall ( -- )   h# 2 io-endpi0-control ! ;
 
-\ discard CRC16 from ZLP
-: read-0-length-packet ( --)   endp0-@ ( crc16) 2drop ;
+\ zero-length-package from host
+: zlp ( -- )   discard-crc ;
 
 \ return IN data
-: 0-length-packet ( -- )          h# 4 io-endpi0-control !          read-0-length-packet ;
-: 1-length-packet ( n -- )        endp0-c!                          read-0-length-packet ;
-: 2-length-packet ( n1 n2 -- )    endp0-!                           read-0-length-packet ;
-: data-packets    ( addr u -- )   0do  count  endp0-c!  loop  drop  read-0-length-packet ;
+: 0-length-packet ( -- )
+    h# 4 io-endpi0-control ! \ io-endpi0.zlp = 1'b1
+    begin
+	io-usb-control @
+	d# 7 rshift  h# 0f and
+	h# 2 = ( ACK)
+    until ;
+	
 
+
+: 1-length-packet ( n -- )        endp0-c! ;
+: 2-length-packet ( n1 n2 -- )    endp0-! ;
+: data-packets    ( addr u -- )   0do  count  endp0-c!  loop  drop  ;
+
+    
 \ return the descriptor index
 : descriptor-index ( -- index )   wValue @ lobyte ;
 
@@ -118,8 +129,8 @@ variable wLength
 
 : token-setup/get-configuration/device-to-host ( -- )
     h# 11 io-ledr !
-    address-state?  if                                                      h# 0 1-length-packet  exit then
-    config-state?   if configuration-descriptor h# 5 + ( bConfigurationValue) c@ 1-length-packet       then ;
+    address-state?  if                                                      h# 0 1-length-packet ( data) zlp ( status) exit then
+    config-state?   if configuration-descriptor h# 5 + ( bConfigurationValue) c@ 1-length-packet ( data) zlp ( status)     then ;
 
 : token-setup/get-configuration ( -- )
     h# 10 io-ledr !
@@ -132,11 +143,11 @@ variable wLength
 
 : token-setup/get-descriptor/device-to-host ( -- )
     h# 21 io-ledr !
-    device?         descriptor-index    0=   and  if  h# 210 io-ledr ! device-descriptor   dup c@ wLength @ min  data-packets  exit then
-    configuration?  descriptor-index    0=   and  if  h# 211 io-ledr ! configuration-descriptor  dup h# 2 +  @ ( wTotalLength) wLength @ min  data-packets  exit then
-    string?         descriptor-index    0=   and  if  h# 212 io-ledr ! string-descriptor0  dup c@ wLength @ min  data-packets  exit then
-    string?         descriptor-index h# 1 =  and  if  h# 213 io-ledr ! string-descriptor1  dup c@ wLength @ min  data-packets  exit then
-    string?         descriptor-index h# 2 =  and  if  h# 214 io-ledr ! string-descriptor2  dup c@ wLength @ min  data-packets  exit then
+    device?         descriptor-index    0=   and  if  h# 210 io-ledr ! device-descriptor   dup c@ wLength @ min  data-packets ( data) zlp ( status)  exit then
+    configuration?  descriptor-index    0=   and  if  h# 211 io-ledr ! configuration-descriptor  dup h# 2 +  @ ( wTotalLength) wLength @ min  data-packets ( data) zlp ( status)  exit then
+    string?         descriptor-index    0=   and  if  h# 212 io-ledr ! string-descriptor0  dup c@ wLength @ min  data-packets ( data) zlp ( status)  exit then
+    string?         descriptor-index h# 1 =  and  if  h# 213 io-ledr ! string-descriptor1  dup c@ wLength @ min  data-packets ( data) zlp ( status)  exit then
+    string?         descriptor-index h# 2 =  and  if  h# 214 io-ledr ! string-descriptor2  dup c@ wLength @ min  data-packets ( data) zlp ( status)  exit then
     handshake-stall ;
 
 : token-setup/get-descriptor ( -- )
@@ -150,7 +161,7 @@ variable wLength
 
 : token-setup/get-interface/interface-to-host ( -- )
     h# 31 io-ledr !
-    config-state?  wIndex @ 0=  and  if  h# 0 1-length-packet  exit then
+    config-state?  wIndex @ 0=  and  if  h# 0 1-length-packet ( data) zlp ( status) exit then
     handshake-stall ;
 
 : token-setup/get-interface ( -- )
@@ -164,11 +175,11 @@ variable wLength
 
 : token-setup/get-status/device-to-host ( -- )
     h# 42 io-ledr !
-    h# 1 ( self-powered) 2-length-packet ;
+    h# 1 ( self-powered) 2-length-packet zlp ;
 
 : token-setup/get-status/interface/endpoint-to-host ( -- )
     h# 41 io-ledr !
-    address-state? invert  descriptor-index 0=  or  if  h# 0 2-length-packet  exit then
+    address-state? invert  descriptor-index 0=  or  if  h# 0 2-length-packet ( data) zlp ( status) exit then
     handshake-stall ;
 
 : token-setup/get-status ( -- )
@@ -184,7 +195,15 @@ variable wLength
 \ wValue=0 is not an error
 : token-setup/set-address/host-to-device ( -- )
     h# 51 io-ledr !
-    config-state? invert  if  wValue @   usb-pending-address !  0-length-packet  exit  then
+    config-state? invert  if
+	wValue @   usb-pending-address !
+	zlp ( data)
+	h# 52 io-ledr !
+	0-length-packet ( status)
+	h# 53 io-ledr !
+	usb-pending-address @  io-usb-control !
+	exit
+    then
     handshake-stall ;
     
 : token-setup/set-address ( -- )
@@ -210,10 +229,8 @@ variable wLength
     wValue @ lobyte
     dup valid-configuration? invert  if  drop handshake-stall  exit then
     0= if  address-state usb-state !  else  config-state  usb-state !  then
-    0-length-packet
-    \ configure device
-    usb-pending-address usb-address ! ;
-    
+    zlp ( data) 0-length-packet ( status)
+    ( configure device ...) ;
 
 : token-setup/set-configuration ( -- )
     h# 60 io-ledr !
