@@ -108,17 +108,18 @@ module usb_sie
 	      endcase
 	    else
 	      if (!transceiver.rx_active)
-		if (token.pid == IN)
+		case (token.pid)
+		  IN:
+		    if (endp_stall)
+		      fsm_packet_next = S_STALL;
+		    else if (endp_empty && !endp_zlp)
+		      fsm_packet_next = S_NAK;
+		    else
+		      fsm_packet_next = S_DATA_IN0;  // Device_do_IN
 
-		  if (endp_stall)
-		    fsm_packet_next = S_STALL;
-		  else if (endp_empty && !endp_zlp)
-		    fsm_packet_next = S_NAK;
-		  else
-		    fsm_packet_next = S_DATA_IN0;  // Device_do_IN
-
-		else
-		  fsm_packet_next = S_TOKEN0;
+		  default
+		    fsm_packet_next = S_TOKEN0;
+		endcase
 
 	  /* data packet */
 	  S_DATA_OUT0:
