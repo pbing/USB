@@ -46,7 +46,7 @@ module tb_usb_rx;
 
    task nrzi_encode(input x);
       #tbit if (!x) nrzi = ~nrzi;
-      d = (nrzi)?K:J;
+      d = (nrzi) ? K : J;
    endtask
 
    task send_bit(input x);
