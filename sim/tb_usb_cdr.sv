@@ -31,10 +31,10 @@ module tb_usb_cdr;
 	  #1.23us $display("phase = 0");
 
 	/* SYNC */
-	repeat(7) #tbit d = (d == J) ? K : J;
+	repeat (7) #tbit d = (d == J) ? K : J;
 	#(2*tbit);
 
-	repeat(64) #tbit d = ({$random}%2) ? K : J;
+	repeat (64) #tbit d = ({$random}%2) ? K : J;
 
 	#100ns $stop;
      end
