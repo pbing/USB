@@ -122,7 +122,7 @@ module tb_top;
    byte set_address[]    = SET_ADDRESS;
    byte addr;
 
-   int rpt; // report file ID
+   int rpt  = $fopen("end_points.rpt"); // report file ID
 
    CII_Starter_TOP dut
      (.*);
@@ -154,7 +154,7 @@ module tb_top;
       .valid(rx_valid),
       .error());
 
-   initial forever #(tclk24/2) CLOCK_24 = ~CLOCK_24;
+   always #(tclk24/2) CLOCK_24 = ~CLOCK_24;
 
    always_comb reset = ~KEY[0];
    always_comb clk   = CLOCK_24;
@@ -162,11 +162,7 @@ module tb_top;
    assign {GPIO_1[34], GPIO_1[32]} = (tx_d_en) ? tx_d_o : 2'bz;
    assign usb_d_i                  = d_port_t'({GPIO_1[34], GPIO_1[32]});
 
-
-
    /* observe endpoints */
-   initial rpt = $fopen("end_points.rpt");
-
    always @(posedge clk)
      begin:monitor_endp
 	if (dut.usb_device_controller.usb_sie.endpi0.wrreq) $fdisplay(rpt, "%t endpi0(device.w): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpi0.data);
