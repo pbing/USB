@@ -60,7 +60,7 @@ variable wLength
 
 \ Read from endpoint fifo
 : endp-c@ ( u -- 8b  )   2* cells io-endpo0-control +
-    begin  dup@  h# 1 and  while repeat \ wait for io-endpo*.empty == 1'b0
+    begin  dup@  h# 1 and  while repeat \ wait for io-endpo*-control.empty == 1'b0
     h# 2 over !                         \ assign 1'b1 to io-endpo*-control.rdreq
     cell+ @ ;                           \ read data from io-endpo*-data
 : endp-@  ( u -- 16b )   dup endp-c@  swap endp-c@  lohi-pack ;
@@ -99,16 +99,10 @@ variable wLength
 \ zero-length-package from host
 : zlp ( -- )   discard-crc ;
 
-\ return IN data
+\ write IN transfer data to host
 : 0-length-packet ( -- )
     h# 4 io-endpi0-control ! \ io-endpi0.zlp = 1'b1
-    begin
-	io-usb-control @
-	d# 7 rshift  h# 0f and
-	h# 2 = ( ACK)
-    until ;
-	
-
+    begin  io-usb-control @  d# 7 rshift  h# 2 = ( ACK)  until ;
 
 : 1-length-packet ( n -- )        endp0-c! ;
 : 2-length-packet ( n1 n2 -- )    endp0-! ;

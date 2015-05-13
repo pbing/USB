@@ -360,11 +360,11 @@ module usb_sie
 
 	if (io.rd)
 	  case (io.addr)
-	    ENDPI0_CONTROL: io.din[0]   = endpi0.full;
-	    ENDPI1_CONTROL: io.din[0]   = endpi1.full;
-	    ENDPO0_CONTROL: io.din[0]   = endpo0.empty;
-	    ENDPO0_DATA   : io.din[7:0] = endpo0.q;
-	    USB_CONTROL   : io.din      = {5'b0, token.pid, device_addr};
+	    ENDPI0_CONTROL: io.din[0]    = endpi0.full;
+	    ENDPI1_CONTROL: io.din[0]    = endpi1.full;
+	    ENDPO0_CONTROL: io.din[0]    = endpo0.empty;
+	    ENDPO0_DATA   : io.din[7:0]  = endpo0.q;
+	    USB_CONTROL   : io.din[10:0] = {token.pid, device_addr};
 	  endcase
      end
 
