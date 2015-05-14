@@ -5,9 +5,11 @@ FORTH=~/SwiftForth/bin/osx/sf
 
 J1=../../J1
 
-.PHONY: sim syn init
+CORE=crossj1.fs basewords.fs nuc.fs
 
-j1.mif j1.lst: *.fs Makefile
+.PHONY: sim syn
+
+j1.mif j1.lst: $(CORE) *.fs Makefile
 	$(FORTH) main.fs
 
 sim: j1.mif
@@ -15,8 +17,6 @@ sim: j1.mif
 
 syn: j1.mif
 	cp $< ../syn
-
-init: crossj1.fs basewords.fs nuc.fs
 
 crossj1.fs: $(J1)/src/crossj1.fs
 	cp $< $@
