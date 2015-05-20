@@ -250,7 +250,7 @@ module usb_sie
 	case (fsm_packet_state)
 	  S_DATA_IN0:
 	    begin
-	       transceiver.tx_data  = {~DATA0, DATA0};
+	       transceiver.tx_data  = {~DATA1, DATA1};
 	       transceiver.tx_valid = 1'b1;
 
 	       if (transceiver.tx_ready && !endp_zlp)

@@ -213,12 +213,12 @@ module tb_top;
 
       /* Data Transaction */
       #10us send_token(IN, addr, endp);
-      receive_data(DATA0, result);
+      receive_data(DATA1, result);
       #20us send_pid(ACK);
 
       /* Status Transaction */
       #10us send_token(OUT, addr, endp);
-      send_data(DATA0); // ZLP
+      send_data(DATA1); // ZLP
       receive_pid(ACK);
    endtask
 
@@ -231,12 +231,12 @@ module tb_top;
 
       /* Data Transaction */
       #10us send_token(OUT, addr, endp);
-      send_data(DATA0, data);
+      send_data(DATA1, data);
       receive_pid(ACK);
 
       /* Status Transaction */
       #10us send_token(IN, addr, endp);
-      receive_data(DATA0); // ZLP
+      receive_data(DATA1); // ZLP
       #20us send_pid(ACK);
    endtask
 
