@@ -115,12 +115,6 @@ module CII_Starter_TOP
    d_port_t   usb_d_i;        // USB port D+, D- (input)
    d_port_t   usb_d_o;        // USB port D+, D- (output)
    wire       usb_d_en;       // USB port D+, D- (enable)
-   wire       usb_reset;      // USB reset due to SE0 for 10 ms
-
-   /* J1 I/O signals */
-   logic [15:0] io_din;
-   wire  [15:0] io_dout, io_addr;
-   wire         io_rd, io_wr;
 
    /* external ports */
    assign clk                      = CLOCK_24[0];
