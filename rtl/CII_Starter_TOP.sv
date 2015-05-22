@@ -3,8 +3,8 @@
  * KEY[0]       external reset
  *
  * GPIO_1[26]   3.3 V at 1.5 kOhm for USB low-speed detection. Low during external reset for starting new communication.
- * GPIO_1[32]   USB-D+
- * GPIO_1[34]   USB-D-
+ * GPIO_1[32]   USB-D-
+ * GPIO_1[34]   USB-D+
  *
  */
 
