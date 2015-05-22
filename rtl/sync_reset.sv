@@ -1,7 +1,7 @@
 /* Synchronize reset from external key. */
 
 module sync_reset
-  (input  wire  clk,    // system clock (24 MHz)
+  (input  wire  clk,    // system clock
    input  wire  key,    // push button
    output logic reset); // syncronized reset (high active)
 
