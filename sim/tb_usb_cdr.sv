@@ -15,6 +15,7 @@ module tb_usb_cdr;
    wire         q;
    wire         en;
    wire         eop;
+   wire         se0;
 
    usb_cdr dut(.*);
 
