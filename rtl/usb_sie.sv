@@ -1,7 +1,7 @@
 /* USB Serial Interface Engine */
 
 module usb_sie
-  (input  wire        clk,         // 24 MHz system clock
+  (input  wire        clk,         // system clock
    if_transceiver.sie transceiver, // USB tranceiver interface
    if_io.slave        io);         // J1 I/O
 
