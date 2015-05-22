@@ -1,11 +1,15 @@
 /* Types */
 
 package types;
+   parameter [1:0] USB_FULL_SPEED = 0; // 0:Low-Speed  1:Full-Speed
+
    /* d_port_t = {D+, D-}
-    * Symbols J and K have inverse polarity in each USB mode
+    * Symbols J and K have inverse polarity in slow/full speed.
     */
-   typedef enum logic [1:0] {SE0, J, K, SE1} d_port_t; // Low Speed (1.5 MHz)
-   //typedef enum logic [1:0] {SE0, K, J, SE1} d_port_t; // Full Speed (12 MHz)
+   typedef enum logic [1:0] {SE0 = 2'd0,
+			     J   = 2'd1 + USB_FULL_SPEED,
+			     K   = 2'd2 - USB_FULL_SPEED,
+			     SE1 = 2'd3 } d_port_t;
 
    /* Packets */
    typedef enum logic [3:0] {/* Token */

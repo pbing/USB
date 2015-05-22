@@ -4,15 +4,17 @@ module tb_usb_cdr;
 
    import types::*;
 
-   const realtime tclk = 1s/24.0e6,
-		  tbit = 1s/1.5e6;
+   const realtime tclk = 1s/((7 * USB_FULL_SPEED + 1) * 6.0e6),
+		  tbit = 4 * tclk;
+
+   var real k;
 
    bit          reset = 1'b1;
    bit          clk;
    var d_port_t d;
-   d_port_t     q;
-   d_port_t     line_state;
-   wire         strobe;
+   wire         q;
+   wire         en;
+   wire         eop;
 
    usb_cdr dut(.*);
 
@@ -23,19 +25,28 @@ module tb_usb_cdr;
 	reset <= #(2*tclk) 1'b0;
 	d = J;
 
-	if($test$plusargs("neg_phase"))
-	  #0.94us $display("phase < 0");
-	else if($test$plusargs("pos_phase"))
-	  #1.60us $display("phase > 0");
+	if($test$plusargs("slow"))
+	  k = 1.01;
+	else if($test$plusargs("fast"))
+	  k = 0.99;
 	else
-	  #1.23us $display("phase = 0");
+	  k = 1.0;
+
+	$display("k = %f", k);
+
 
 	/* SYNC */
-	repeat (7) #tbit d = (d == J) ? K : J;
-	#(2*tbit);
+	#(10.3*tclk);
+	repeat (7) #(k*tbit) d = (d == J) ? K : J;
+	#(2*k*tbit);
 
-	repeat (64) #tbit d = ({$random}%2) ? K : J;
+	/* data */
+	repeat (64) #(k*tbit) d = ({$random}%2) ? K : J;
 
-	#100ns $stop;
+	/* EOP */
+	#(k*tbit)   d = SE0;
+	#(2*k*tbit) d = J;
+
+	#(10*tclk) $stop;
      end
 endmodule

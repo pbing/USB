@@ -117,14 +117,18 @@ module CII_Starter_TOP
    wire       usb_d_en;       // USB port D+, D- (enable)
 
    /* external ports */
-   assign clk                      = CLOCK_24[0];
    assign usb_d_i                  = d_port_t'({GPIO_1[34], GPIO_1[32]});
    assign {GPIO_1[34], GPIO_1[32]} = (usb_d_en) ? usb_d_o : 2'bz;
    assign GPIO_1[26]               = ~reset;
+   assign GPIO_0[35]               = usb_d_en;
 
    if_io io_cpu();
    if_io io_sie();
    if_io io_board();
+
+   clk_unit clk_unit
+     (.clk_i(CLOCK_24[0]),
+      .clk_o(clk));
 
    sync_reset sync_reset
      (.clk(clk),
