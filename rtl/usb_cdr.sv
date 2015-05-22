@@ -11,7 +11,8 @@ module usb_cdr
     input  d_port_t d,     // data from PHY
     output logic    q,     // retimed data
     output logic    en,    // data enable
-    output logic    eop);  // end of packet
+    output logic    eop,   // end of packet
+    output logic    se0);  // SE0 state
 
    /******************************
     * Clock and data recover
@@ -113,7 +114,7 @@ module usb_cdr
     ******************************/
 
    /* synchronizer */
-   logic se0, j;
+   logic j;
 
    always @(posedge clk)
      begin
