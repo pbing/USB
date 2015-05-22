@@ -3,7 +3,7 @@
 module usb_device_controller
   import types::*;
    (input  wire     reset, // reset
-    input  wire     clk,   // system clock (24 MHz)
+    input  wire     clk,   // system clock (slow speed: 6 MHz, full speed: 48 MHz)
     input  d_port_t d_i,   // USB port D+,D- (input)
     output d_port_t d_o,   // USB port D+,D- (output)
     output wire     d_en,  // USB port D+,D- (enable)
