@@ -4,10 +4,10 @@ module tb_usb_tx;
    timeunit 1ns;
    timeprecision 1ps;
 
-   const realtime tusb = 1s/1.5e6,  // low speed
-		  tclk = 1s/24.0e6;
-
    import types::*;
+
+   const realtime tclk = 1s/((7 * USB_FULL_SPEED + 1) * 6.0e6),
+		  tbit = 4 * tclk;
 
    bit       reset = 1'b1;
    bit       clk;

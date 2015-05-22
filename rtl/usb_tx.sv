@@ -3,15 +3,15 @@
 module usb_tx
   import types::*;
    (input  wire        reset,  // reset
-    input  wire        clk,    // system clock (24 MHz)
-    output d_port_t    d_o,    // USB port D+,D- (output)
-    output logic       d_en,   // USB port D+,D- (enable)
+    input  wire        clk,    // system clock (slow speed: 6 MHz, full speed: 48 MHz)
+    output d_port_t    d_o,    // USB port D+, D- (output)
+    output logic       d_en,   // USB port D+, D- (enable)
     input  wire  [7:0] data,   // data from SIE
     input  wire        valid,  // rise:SYNC,1:send data,fall:EOP
     output logic       ready); // data has been sent
 
    /* bit/byte enable */
-   logic [3:0] clk_counter;  // 24 MHz/1.5 MHz = 16
+   logic [1:0] clk_counter;  // 4x oversampling
    logic [2:0] bit_counter;  // 8 bits per byte
    logic       stuffing;     // bit stuffing
    logic [2:0] num_ones;     // number of ones
@@ -23,21 +23,21 @@ module usb_tx
    always_ff @(posedge clk)
      if (reset)
        begin
-	  clk_counter <= 4'd0;
+	  clk_counter <= 2'd0;
 	  bit_counter <= 3'd0;
        end
      else
        begin
 	  if (tx_state == RESET || (!valid && tx_state == TX_WAIT))
 	    begin
-	       clk_counter <= 4'd0;
+	       clk_counter <= 2'd0;
 	       bit_counter <= 3'd0;
 	    end
 	  else
 	    begin
 	       clk_counter <= clk_counter + 2'd1;
 
-	       if (clk_counter == 4'd15 && !stuffing)
+	       if (clk_counter == 2'd3 && !stuffing)
 		 bit_counter <= bit_counter + 3'd1;
 	    end
        end
@@ -81,7 +81,7 @@ module usb_tx
 
    always_comb
      begin
-        en_bit = (tx_state != RESET && tx_state != TX_WAIT && clk_counter == 4'd0);
+        en_bit = (tx_state != RESET && tx_state != TX_WAIT && clk_counter == 2'd0);
 	sent   = (en_bit && bit_counter == 3'd7);
 	ready  = (sent && !stuffing);
 	d_en   = (tx_state != RESET && tx_state != TX_WAIT);
