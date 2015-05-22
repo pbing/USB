@@ -20,7 +20,7 @@ module usb_rx
    /*************************************************************
     * RX FSM
     *
-    * Use exlicite state assings instead of rx_next = rx_state.next()
+    * Use explicite state assings instead of rx_next = rx_state.next()
     * because automatic FSM detection of Synplify does not work
     * in this case.
     *************************************************************/
