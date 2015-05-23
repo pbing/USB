@@ -1,8 +1,7 @@
 /* Evaluation Bord I/O */
 
 module board_io
-  (input  wire             clk,   // clocka
-   input  wire             reset, // reset
+  (input  wire             reset, // reset
    input  wire  [3:0]      key,   // push buttons
    input  wire  [9:0]      sw,    // toggle switches
    output logic [0:3][6:0] hex,   // seven segment display
@@ -12,7 +11,7 @@ module board_io
 
    import ioaddr::*;
 
-   always_ff @(posedge clk)
+   always_ff @(posedge io.clk)
      begin
 	if (reset)
 	  begin
