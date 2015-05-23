@@ -5,8 +5,7 @@ module tb_top;
    import types::*;
 
    const realtime tclk24 = 1s/24e6,
-                  tusb   = 1s/1.5e6;  // low speed
-   const int      nbit   = tusb/tclk24;
+		  tclk   = 1s/((7 * USB_FULL_SPEED + 1) * 6.0e6);
 
    bit  [1:0]   CLOCK_24;                               //      24 MHz
    bit  [1:0]   CLOCK_27;                               //      27 MHz
@@ -88,8 +87,8 @@ module tb_top;
    wire [35:0]  GPIO_0;                                 //      GPIO Connection 0
    wire [35:0]  GPIO_1;                                 //      GPIO Connection 1
 
-   logic        reset;      // resetr
-   logic        clk;        // system clock (24 MHz)
+   bit          reset;      // reset
+   bit          clk;        // system clock (24 MHz)
    var d_port_t d_i;        // USB port D+,D- (input)
    var d_port_t tx_d_o;     // USB port D+,D- (output)
    wire         tx_d_en;    // USB port D+,D- (enable)
@@ -99,8 +98,9 @@ module tb_top;
 
    d_port_t     usb_d_i;
    wire         rx_clk_en;  // RX clock enable
-   var d_port_t rx_d_i;     // RX data from CDR
-   var d_port_t line_state; // synchronized D+,D-
+   wire         rx_d_i;     // RX data from CDR
+   wire         rx_se0;     // SE0 from CDR
+   wire         rx_eop;     // EOP from CDR
    wire [7:0]   rx_data;    // recieved data
    wire         rx_active;  // active between SYNC und EOP
    wire         rx_valid;   // data valid pulse
@@ -141,26 +141,43 @@ module tb_top;
       .clk(clk),
       .d(usb_d_i),
       .q(rx_d_i),
-      .line_state(line_state),
-      .strobe(rx_clk_en));
+      .en(rx_clk_en),
+      .eop(rx_eop),
+      .se0(rx_se0));
 
    usb_rx tb_rx
-     (.reset(tx_valid),
+     (.reset(tx_d_en),
       .clk(clk),
       .clk_en(rx_clk_en),
       .d_i(rx_d_i),
+      .eop(rx_eop),
       .data(rx_data),
       .active(rx_active),
       .valid(rx_valid),
       .error());
 
    always #(tclk24/2) CLOCK_24 = ~CLOCK_24;
+   always #(tclk/2)   clk      = ~clk;
 
    always_comb reset = ~KEY[0];
-   always_comb clk   = CLOCK_24;
 
-   assign {GPIO_1[34], GPIO_1[32]} = (tx_d_en) ? tx_d_o : 2'bz;
-   assign usb_d_i                  = d_port_t'({GPIO_1[34], GPIO_1[32]});
+   generate
+      if (USB_FULL_SPEED)
+	begin:full_speed
+	   assign usb_d_i                  = d_port_t'({GPIO_1[32], GPIO_1[34]});
+	   assign {GPIO_1[32], GPIO_1[34]} = (tx_d_en) ? tx_d_o : 2'bz;
+	end:full_speed
+      else
+	begin:slow_speed
+	   assign usb_d_i                  = d_port_t'({GPIO_1[34], GPIO_1[32]});
+	   assign {GPIO_1[34], GPIO_1[32]} = (tx_d_en) ? tx_d_o : 2'bz;
+	end:slow_speed
+   endgenerate
+
+   /* pull-resistors of host and device */
+   pulldown (weak0)       pd1(GPIO_1[32]);
+   pulldown (weak0)       pd2(GPIO_1[34]);
+   bufif1 (pull1, highz0) pu1(GPIO_1[32], 1'b1, GPIO_1[26]);
 
    /* observe endpoints */
    always @(posedge clk)
