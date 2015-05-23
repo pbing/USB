@@ -204,17 +204,20 @@ module tb_top;
 	#30us control_read_transfer(get_descriptor, SHORT_DEVICE_DESCRIPTOR, 0, 0);
 
 	addr = {$random % 8'h80};
+	addr = 8'h05;
 	set_address[2] = addr;
 	$display("SET_ADDRESS('h%h)", addr);
 	#30us control_write_transfer(set_address, '{}, 0, 0);
 
-	$display("SET_CONFIGURATION");
-	#30us control_write_transfer(SET_CONFIGURATION, '{}, addr, 0);
-
 	$display("GET_DESCRIPTOR (full)");
 	#30us control_read_transfer(GET_DESCRIPTOR, DEVICE_DESCRIPTOR, addr, 0);
 
-        #100us $stop;
+/* -----\/----- EXCLUDED -----\/-----
+  	$display("SET_CONFIGURATION");
+	#30us control_write_transfer(SET_CONFIGURATION, '{}, addr, 0);
+ -----/\----- EXCLUDED -----/\----- */
+
+      #100us $stop;
      end:main
 
    /**********************************************************************
@@ -247,9 +250,12 @@ module tb_top;
       receive_pid(ACK);
 
       /* Data Transaction */
-      #10us send_token(OUT, addr, endp);
-      send_data(DATA1, data);
-      receive_pid(ACK);
+      if (data.size() > 0)
+	begin
+	   #10us send_token(OUT, addr, endp);
+	   send_data(DATA1, data);
+	   receive_pid(ACK);
+	end
 
       /* Status Transaction */
       #10us send_token(IN, addr, endp);
