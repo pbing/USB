@@ -273,17 +273,13 @@ module usb_sie
 
 	  S_DATA_IN3:
 	    begin
-	       for (int i = 0; i < 8; i++)
-		 transceiver.tx_data[i] = ~crc16[7-i];
-
+	       transceiver.tx_data  = ~crc16[7-:8];
 	       transceiver.tx_valid = 1'b1;
 	    end
 
 	  S_DATA_IN4:
 	    begin
-	       for (int i = 0; i < 8; i++)
-		 transceiver.tx_data[i] = ~crc16[15-i];
-
+	       transceiver.tx_data  = ~crc16[15-:8];
 	       transceiver.tx_valid = 1'b1;
 	    end
 
