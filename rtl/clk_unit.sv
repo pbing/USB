@@ -31,7 +31,12 @@ module clk_unit
 	     pll_clk_6m <= ~pll_clk_6m;
 
 	   assign clk_cpu = pll_clk_12m;
-	   assign clk_usb = pll_clk_6m;
+
+	   /* add clock buffer for Altera CYCLONE II */
+	   clkctrl clkctrl
+	     (.inclk(pll_clk_6m),
+	      .outclk(clk_usb));
+
 	end:low_speed
    endgenerate
 
