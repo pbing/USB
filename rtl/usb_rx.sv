@@ -143,7 +143,7 @@ module usb_rx
      else if (clk_en)
        nrzi <= j;
 
-   always_comb d0 <= j ~^ nrzi;
+   always_comb d0 = j ~^ nrzi;
 
    /* bit unstuffing */
    logic [2:0] num_ones;
