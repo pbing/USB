@@ -9,18 +9,16 @@ module usb_device_controller
     output wire     d_en,  // USB port D+,D- (enable)
     if_io.slave     io);   // J1 I/O
 
-   if_transceiver transceiver();
+   if_transceiver transceiver(.clk(clk));
 
    usb_transceiver usb_transceiver
      (.reset(reset),
-      .clk(clk),
       .d_i(d_i),
       .d_o(d_o),
       .d_en(d_en),
       .transceiver(transceiver));
 
    usb_sie usb_sie
-     (.clk(clk),
-      .transceiver(transceiver),
+     (.transceiver(transceiver),
       .io(io));
 endmodule
