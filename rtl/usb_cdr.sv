@@ -1,97 +1,177 @@
-/* Oversampled Hogge clock and data recovery circuit
- * for USB low speed reveiver (1.5 MHz).
+/* DPLL with 4x oversampling
+ *
+ * Design a robust USB serial interface engine (SIE)
+ * http://www.usb.org/developers/docs/whitepapers/siewp.pdf
  */
 
 module usb_cdr
   import types::*;
-   (input  wire     reset,          // system reset
-    input  wire     clk,            // system clock (24 MHz)
-    input  d_port_t d,              // data from PHY
-    output d_port_t q,              // retimed data
-    output d_port_t line_state,     // synchronized D+, D-
-    output logic    strobe);        // data strobe
+   (input  wire     reset, // system reset
+    input  wire     clk,   // system clock (slow speed: 6 MHz, full speed: 48 MHz)
+    input  d_port_t d,     // data from PHY
+    output logic    q,     // retimed data
+    output logic    en,    // data enable
+    output logic    eop,   // end of packet
+    output logic    se0);  // SE0 state
 
-   logic [3:0]        phase;        // phase (24 MHz/1.5 MHz = 16)
-   logic signed [4:0] dphase;       // delta phase
-   var d_port_t       d_shift[1:2]; // shifted data
-   logic              up, down;     // phase shift direction
+   /******************************
+    * Clock and data recover
+    ******************************/
 
-   always_ff @(posedge clk)
+   /* synchronizer */
+   logic a, b;
+
+   always @(posedge clk)
+     a <= (d == K);
+
+   always @(negedge clk)
+     b <= (d == K);
+
+   /* CDR FSM */
+   logic [3:0] cdr_state, cdr_next;
+
+   always @(posedge clk)
      if (reset)
-       begin
-	  d_shift[1] <= J;
-	  d_shift[2] <= J;
-	  phase      <= 4'd0;
-	  dphase     <= 5'sd0;
-	  strobe     <= 1'b0;
-       end
+       cdr_state <= 4'hc;
      else
-       begin
-	  strobe <= 1'b0;
+       cdr_state <= cdr_next;
 
-	  priority case (1'b1)
-	    down  : dphase <= dphase - 5'sd1;
-	    up    : dphase <= dphase + 5'sd1;
-	    default if (phase == 4'd13) dphase <= 5'sd0;
-	  endcase
+   always_comb
+     case (cdr_state)
+       /* Init */
+       4'hc:
+	 if (!b)
+	   cdr_next = 4'hd;
+	 else
+	   cdr_next = 4'hc;
 
-	  unique case (phase)
-	    4'd4:
-	      begin
-		 d_shift[1] <= d;
-		 phase      <= phase + 4'sd1;
-	      end
+       4'hd:
+	 if (b)
+	   cdr_next = 4'h5;
+	 else
+	   cdr_next = 4'hd;
 
-	    4'd12:
-	      begin
-		 d_shift[2] <= d_shift[1];
-		 phase      <= phase + 4'sd1;
-		 strobe     <= 1'b1;
-	      end
+       /* D = 1 */
+       4'h5:
+	 cdr_next = 4'h7;
 
-	    4'd13:
-	      if (dphase == 5'sd0)
-		phase <= phase + 4'sd1;
-	      else if (dphase>5'sd0)
-		phase <= phase + 4'sd2;
-	      else
-		/* skip phase increment when dphase is negative */
-		phase <= phase;
+       4'h7:
+	 if (a)
+	   cdr_next = 4'h6;
+	 else
+	   cdr_next = 4'hb;
 
-	    default
-	      phase <= phase + 4'sd1;
-	  endcase
+       4'h6:
+	 if (b)
+	   cdr_next = 4'h4;
+	 else
+	   cdr_next = 4'h1;
 
-       end
+       4'h4:
+	 if (b)
+	   cdr_next = 4'h5;
+	 else
+	   cdr_next = 4'h1;
+
+       4'hf:
+	 cdr_next = 4'h6;
+
+       /* D = 0 */
+       4'h1:
+	 cdr_next = 4'h3;
+
+       4'h3:
+	 if (!a)
+	   cdr_next = 4'h2;
+	 else
+	   cdr_next = 4'hf;
+
+       4'h2:
+	 if (!b)
+	   cdr_next = 4'h0;
+	 else
+	   cdr_next = 4'h5;
+
+       4'h0:
+	 if (!b)
+	   cdr_next = 4'h1;
+	 else
+	   cdr_next = 4'h5;
+
+       4'hb:
+	 cdr_next = 4'h2;
+
+       default
+	 cdr_next = 4'hc;
+     endcase
+
+   always_comb q = cdr_state[2];
+
+   always_comb en  = ((cdr_state == 4'h3) || (cdr_state == 4'h7));
+
+   /******************************
+    * EOP detection
+    ******************************/
+
+   /* synchronizer */
+   logic j;
+
+   always @(posedge clk)
+     begin
+	j   <= (d == J);
+	se0 <= (d == SE0);
+     end
+
+   /* EOP FSM */
+   enum int unsigned {S[5]} eop_state, eop_next;
+
+   always @(posedge clk)
+     if (reset)
+       eop_state <= S0;
+     else
+       eop_state <= eop_next;
 
    always_comb
      begin
-	/* Phase discriminators are using only one bit (d_port_t[0]). */
-	down = (d_shift[1][0] != d_shift[2][0]);
-	up = (d[0] != d_shift[1][0]);
+	eop = 1'b0;
 
-	q = d_shift[2];
-     end
+	case (eop_state)
+	  S0:
+	    if (se0)
+	      eop_next = S1;
+	    else
+	      eop_next = S0;
 
-   /************************************************************************
-    * Line-state
-    ************************************************************************/
+	  S1:
+	    if (se0)
+	      eop_next = S2;
+	    else
+	      eop_next = S0;
 
-   /* synchronize to system clock */
-   always_ff @(posedge clk)
-     begin
-	var d_port_t d_s; // synchronized d
+	  S2:
+	    if (se0)
+	      eop_next = S3;
+	    else
+	      eop_next = S0;
 
-	if (reset)
-	  begin
-	     /* Init to IDLE */
-	     d_s        <= J;
-	     line_state <= J;
-	  end
-	else
-	  begin
-	     d_s        <= d;
-	     line_state <= d_s;
-	  end
+	  S3:
+	    if (se0)
+	      eop_next = S3;
+	    else if (j)
+	      begin
+		 eop      = 1'b1;
+		 eop_next = S0;
+	      end
+	    else
+	      eop_next = S4;
+
+	  S4:
+	    begin
+	       if (j)
+		 eop = 1'b1;
+
+	       eop_next = S0;
+	    end
+	endcase
      end
 endmodule

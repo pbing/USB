@@ -3,7 +3,6 @@
 module usb_transceiver
   import types::*;
    (input  wire        reset,        // reset
-    input  wire        clk,          // system clock (24 MHz)
 
     /* USB Bus */
     input  d_port_t    d_i,          // USB port D+, D- (input)
@@ -13,29 +12,32 @@ module usb_transceiver
     if_transceiver.phy transceiver); // USB tranceiver interface
 
    wire     rx_clk_en;  // RX clock enable
-   d_port_t rx_d_i;     // RX data from CDR
-   d_port_t line_state; // synchronized D+, D-
+   wire     rx_d_i;     // RX data from CDR
+   wire     eop;        // end of packet
+   wire     se0;        // SE0 state
    logic    rx_reset;
 
    usb_reset ubs_reset
      (.reset_i(reset),
-      .clk(clk),
-      .line_state(line_state),
+      .clk(transceiver.clk),
+      .se0(se0),
       .reset_o(transceiver.usb_reset));
 
    usb_cdr usb_cdr
      (.reset(reset),
-      .clk(clk),
+      .clk(transceiver.clk),
       .d(d_i),
       .q(rx_d_i),
-      .line_state(line_state),
-      .strobe(rx_clk_en));
+      .en(rx_clk_en),
+      .eop(eop),
+      .se0(se0));
 
    usb_rx usb_rx
      (.reset(rx_reset),
-      .clk(clk),
+      .clk(transceiver.clk),
       .clk_en(rx_clk_en),
       .d_i(rx_d_i),
+      .eop(eop),
       .data(transceiver.rx_data),
       .active(transceiver.rx_active),
       .valid(transceiver.rx_valid),
@@ -43,12 +45,12 @@ module usb_transceiver
 
    usb_tx usb_tx
      (.reset(transceiver.usb_reset),
-      .clk(clk),
+      .clk(transceiver.clk),
       .d_o(d_o),
       .d_en(d_en),
       .data(transceiver.tx_data),
       .valid(transceiver.tx_valid),
       .ready(transceiver.tx_ready));
 
-   always_comb rx_reset = transceiver.usb_reset | transceiver.tx_valid;
+   always_comb rx_reset = transceiver.usb_reset | d_en;
 endmodule

@@ -191,7 +191,6 @@ variable wLength
     h# 51 io-ledr !
     config-state? invert  if
 	wValue @   usb-pending-address !
-	zlp ( data)
 	h# 52 io-ledr !
 	0-length-packet ( status)
 	h# 53 io-ledr !

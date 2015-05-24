@@ -1,8 +1,7 @@
 /* USB Serial Interface Engine */
 
 module usb_sie
-  (input  wire        clk,         // 24 MHz system clock
-   if_transceiver.sie transceiver, // USB tranceiver interface
+  (if_transceiver.sie transceiver, // USB tranceiver interface
    if_io.slave        io);         // J1 I/O
 
    import types::*, ioaddr::*;
@@ -24,44 +23,44 @@ module usb_sie
    if_fifo endpi1();
 
    fifo8x16 fifo_endpi0
-     (.clock(clk),
+     (.aclr(endpi0.aclr),
       .data(endpi0.data),
+      .rdclk(transceiver.clk),
       .rdreq(endpi0.rdreq),
-      .sclr(endpi0.sclr),
+      .wrclk(io.clk),
       .wrreq(endpi0.wrreq),
-      .empty(endpi0.empty),
-      .full(endpi0.full),
       .q(endpi0.q),
-      .usedw(endpi0.usedw));
+      .rdempty(endpi0.empty),
+      .wrfull(endpi0.full));
 
    fifo8x16 fifo_endpo0
-     (.clock(clk),
+     (.aclr(endpo0.aclr),
       .data(endpo0.data),
+      .rdclk(io.clk),
       .rdreq(endpo0.rdreq),
-      .sclr(endpo0.sclr),
+      .wrclk(transceiver.clk),
       .wrreq(endpo0.wrreq),
-      .empty(endpo0.empty),
-      .full(endpo0.full),
       .q(endpo0.q),
-      .usedw(endpo0.usedw));
+      .rdempty(endpo0.empty),
+      .wrfull(endpo0.full)); 
 
    fifo8x16 fifo_endpi1
-     (.clock(clk),
+     (.aclr(endpi1.aclr),
       .data(endpi1.data),
+      .rdclk(transceiver.clk),
       .rdreq(endpi1.rdreq),
-      .sclr(endpi1.sclr),
+      .wrclk(io.clk),
       .wrreq(endpi1.wrreq),
-      .empty(endpi1.empty),
-      .full(endpi1.full),
       .q(endpi1.q),
-      .usedw(endpi1.usedw));
+      .rdempty(endpi1.empty),
+      .wrfull(endpi1.full));
 
    /************************************************************************
     * packet FSM
     ************************************************************************/
    enum int unsigned {S_TOKEN[3], S_DATA_OUT[2], S_DATA_IN[6], S_ACK, S_NAK, S_STALL, S_LAST_BIT} fsm_packet_state, fsm_packet_next;
 
-   always_ff @(posedge clk)
+   always_ff @(posedge transceiver.clk)
      if (transceiver.usb_reset)
        fsm_packet_state <= S_TOKEN0;
      else
@@ -184,7 +183,7 @@ module usb_sie
    /************************************************************************
     * Store token
     ************************************************************************/
-   always_ff @(posedge clk)
+   always_ff @(posedge transceiver.clk)
      if (transceiver.usb_reset)
        begin
 	  token.pidx <= 4'b0;
@@ -222,7 +221,7 @@ module usb_sie
    /************************************************************************
     * Calculate CRC16
     ************************************************************************/
-   always_ff @(posedge clk)
+   always_ff @(posedge transceiver.clk)
      if (transceiver.usb_reset)
        crc16 <= 16'hffff;
      else
@@ -274,17 +273,13 @@ module usb_sie
 
 	  S_DATA_IN3:
 	    begin
-	       for (int i = 0; i < 8; i++)
-		 transceiver.tx_data[i] = ~crc16[7-i];
-
+	       transceiver.tx_data  = ~crc16[7-:8];
 	       transceiver.tx_valid = 1'b1;
 	    end
 
 	  S_DATA_IN4:
 	    begin
-	       for (int i = 0; i < 8; i++)
-		 transceiver.tx_data[i] = ~crc16[15-i];
-
+	       transceiver.tx_data  = ~crc16[15-:8];
 	       transceiver.tx_valid = 1'b1;
 	    end
 
@@ -372,17 +367,17 @@ module usb_sie
    always_comb
      begin
 	endpi0.data  = io.dout;
-	endpi0.sclr  = transceiver.usb_reset;
+	endpi0.aclr  = transceiver.usb_reset;
 	endpi0.rdreq = 1'b0;
 	endpi0.wrreq = 1'b0;
 
 	endpi1.data  = io.dout;
-	endpi1.sclr  = transceiver.usb_reset;
+	endpi1.aclr  = transceiver.usb_reset;
 	endpi1.wrreq = 1'b0;
 	endpi1.rdreq = 1'b0;
 
 	endpo0.data  = transceiver.rx_data;
-	endpo0.sclr  = transceiver.usb_reset;
+	endpo0.aclr  = transceiver.usb_reset;
 	endpo0.rdreq = 1'b0;
 	endpo0.wrreq = 1'b0;
 
@@ -405,7 +400,7 @@ module usb_sie
 	  endcase
      end
 
-   always_ff @(posedge clk)
+   always_ff @(posedge io.clk)
      if (transceiver.usb_reset)
        begin
 	  endpi0_stall <= 1'b0;
@@ -429,7 +424,7 @@ module usb_sie
 	    end
        end
 
-   always_ff @(posedge clk)
+   always_ff @(posedge io.clk)
      if (transceiver.usb_reset)
        begin
 	  endpi1_stall <= 1'b0;
@@ -456,7 +451,7 @@ module usb_sie
    /************************************************************************
     * USB_CONTROL register
     ************************************************************************/
-   always_ff @(posedge clk)
+   always_ff @(posedge io.clk)
      if (transceiver.usb_reset)
        device_addr <= 7'h0;
      else

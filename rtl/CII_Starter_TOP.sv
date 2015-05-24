@@ -2,9 +2,10 @@
  *
  * KEY[0]       external reset
  *
- * GPIO_1[26]   3.3 V at 1.5 kOhm for USB low-speed detection. Low during external reset for starting new communication.
- * GPIO_1[32]   USB-D-
- * GPIO_1[34]   USB-D+
+ * GPIO_1[26]   Pull-up to 3.3 V via 1.5 kOhm at GPIO_1[32] for USB speed detection.
+ *              Low during external reset for starting new communication.
+ * GPIO_1[32]   slow speed: USB-D-, full speed: USB-D+
+ * GPIO_1[34]   slow speed: USB-D+, full speed: USB-D-
  *
  */
 
@@ -109,22 +110,39 @@ module CII_Starter_TOP
 
    /* common signals */
    wire reset;
-   wire clk;
+   wire clk, clk_cpu;
 
    /* USB */
    d_port_t   usb_d_i;        // USB port D+, D- (input)
    d_port_t   usb_d_o;        // USB port D+, D- (output)
    wire       usb_d_en;       // USB port D+, D- (enable)
 
-   /* external ports */
-   assign clk                      = CLOCK_24[0];
-   assign usb_d_i                  = d_port_t'({GPIO_1[34], GPIO_1[32]});
-   assign {GPIO_1[34], GPIO_1[32]} = (usb_d_en) ? usb_d_o : 2'bz;
-   assign GPIO_1[26]               = ~reset;
 
-   if_io io_cpu();
-   if_io io_sie();
-   if_io io_board();
+   /* external ports */
+   assign GPIO_1[26] = ~reset;
+   assign GPIO_0[35] = usb_d_en;
+
+   generate
+      if (USB_FULL_SPEED)
+	begin:full_speed
+	   assign usb_d_i                  = d_port_t'({GPIO_1[32], GPIO_1[34]});
+	   assign {GPIO_1[32], GPIO_1[34]} = (usb_d_en) ? usb_d_o : 2'bz;
+	end:full_speed
+      else
+	begin:slow_speed
+	   assign usb_d_i                  = d_port_t'({GPIO_1[34], GPIO_1[32]});
+	   assign {GPIO_1[34], GPIO_1[32]} = (usb_d_en) ? usb_d_o : 2'bz;
+	end:slow_speed
+   endgenerate
+
+   if_io io_cpu  (.clk(clk_cpu));
+   if_io io_sie  (.clk(clk_cpu));
+   if_io io_board(.clk(clk_cpu));
+
+   clk_unit clk_unit
+     (.clk_i(CLOCK_24[0]),
+      .clk_cpu(clk_cpu),
+      .clk_usb(clk));
 
    sync_reset sync_reset
      (.clk(clk),
@@ -132,7 +150,7 @@ module CII_Starter_TOP
       .reset(reset));
 
    j1 j1
-     (.sys_clk_i(clk),
+     (.sys_clk_i(clk_cpu),
       .sys_rst_i(reset),
       .io_din(io_cpu.din),
       .io_rd(io_cpu.rd),
@@ -154,8 +172,7 @@ module CII_Starter_TOP
       .io(io_sie));
 
    board_io board_io
-     (.clk(clk),
-      .reset(reset),
+     (.reset(reset),
       .key(KEY),
       .sw(SW),
       .hex({HEX0, HEX1, HEX2, HEX3}),

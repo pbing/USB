@@ -3,19 +3,19 @@
 module usb_rx
   import types::*;
    (input  wire        reset,  // system reset
-    input  wire        clk,    // system clock (24 MHz)
+    input  wire        clk,    // system clock (slow speed: 6 MHz, full speed: 48 MHz)
     input  wire        clk_en, // clock enable
-    input  d_port_t    d_i,    // data from CDR
+    input  wire        d_i,    // data from CDR
+    input  wire        eop,    // EOP from CDR
     output logic [7:0] data,   // data to SIE
     output logic       active, // active between SYNC und EOP
     output logic       valid,  // data valid pulse
     output logic       error); // error detected
 
-   logic j, k, se0;
+   logic j, k;
 
-   always_comb j   = (d_i == J);
-   always_comb k   = (d_i == K);
-   always_comb se0 = (d_i == SE0);
+   always_comb j = ~d_i;
+   always_comb k =  d_i;
 
    /*************************************************************
     * RX FSM
@@ -24,107 +24,89 @@ module usb_rx
     * because automatic FSM detection of Synplify does not work
     * in this case.
     *************************************************************/
-   enum int unsigned {RESET, SYNC[8], RX_DATA_WAIT[8], RX_DATA, STRIP_EOP[2], ERROR, ABORT[1:2], TERMINATE} rx_state, rx_next;
+   enum int unsigned {RESET, SYNC[4], RX_DATA_WAIT[8], RX_DATA, STRIP_EOP, ERROR, ABORT[1:2], TERMINATE} rx_state, rx_next;
    logic             rcv_bit, rcv_data;
 
    always_ff @(posedge clk)
      if (reset)
        rx_state <= RESET;
-     else if (clk_en)
+     else
        rx_state <= rx_next;
 
    always_comb
      begin
 	rx_next = rx_state;
 
-	case (rx_state)
-	  RESET:
-	    if (k) rx_next = SYNC0;
+	if (eop)
+	  rx_next = STRIP_EOP;
 
-	  SYNC0:
-	    if (j) rx_next = SYNC1;
-	    else   rx_next = RESET;
+	else if (clk_en)
+	  case (rx_state)
 
-	  SYNC1:
-	    if (k) rx_next = SYNC2;
-	    else   rx_next = RESET;
+	    /* search ...KJKK */
+	    RESET:
+	      if (k) rx_next = SYNC0;
 
-	  SYNC2:
-	    if (j) rx_next = SYNC3;
-	    else   rx_next = RESET;
+	    SYNC0:
+	      if (j) rx_next = SYNC1;
 
-	  SYNC3:
-	    if (k) rx_next = SYNC4;
-	    else   rx_next = RESET;
+	    SYNC1:
+	      if (k) rx_next = SYNC2;
+	      else   rx_next = RESET;
 
+	    SYNC2:
+	      if (k) rx_next = SYNC3;
+	      else   rx_next = SYNC1;
 
-	  SYNC4:
-	    if (j) rx_next = SYNC5;
-	    else   rx_next = RESET;
+	    SYNC3:
+	      rx_next = RX_DATA_WAIT0;
 
-	  SYNC5:
-	    if (k) rx_next = SYNC6;
-	    else   rx_next = RESET;
+	    RX_DATA_WAIT0:
+	      if (rcv_bit) rx_next = RX_DATA_WAIT1;
 
-	  SYNC6:
-	    if (k) rx_next = SYNC7;
-	    else   rx_next = RESET;
+	    RX_DATA_WAIT1:
+	      if (rcv_bit) rx_next = RX_DATA_WAIT2;
 
-	  SYNC7:
-	    rx_next = RX_DATA_WAIT0;
+	    RX_DATA_WAIT2:
+	      if (rcv_bit) rx_next = RX_DATA_WAIT3;
 
-	  RX_DATA_WAIT0:
-	    if (rcv_bit) rx_next = RX_DATA_WAIT1;
+	    RX_DATA_WAIT3:
+	      if (rcv_bit) rx_next = RX_DATA_WAIT4;
 
-	  RX_DATA_WAIT1:
-	    if (rcv_bit) rx_next = RX_DATA_WAIT2;
+	    RX_DATA_WAIT4:
+	      if (rcv_bit) rx_next = RX_DATA_WAIT5;
 
-	  RX_DATA_WAIT2:
-	    if (rcv_bit) rx_next = RX_DATA_WAIT3;
+	    RX_DATA_WAIT5:
+	      if (rcv_bit) rx_next = RX_DATA_WAIT6;
 
-	  RX_DATA_WAIT3:
-	    if (rcv_bit) rx_next = RX_DATA_WAIT4;
+	    RX_DATA_WAIT6:
+	      if (rcv_bit) rx_next = RX_DATA_WAIT7;
 
-	  RX_DATA_WAIT4:
-	    if (rcv_bit) rx_next = RX_DATA_WAIT5;
+	    RX_DATA_WAIT7:
+	      if (rcv_bit) rx_next = RX_DATA;
 
-	  RX_DATA_WAIT5:
-	    if (rcv_bit) rx_next = RX_DATA_WAIT6;
+	    RX_DATA:
+	      if (rcv_bit) rx_next = RX_DATA_WAIT1;
 
-	  RX_DATA_WAIT6:
-	    if (rcv_bit) rx_next = RX_DATA_WAIT7;
+	    STRIP_EOP:
+	      rx_next = RESET;
 
-	  RX_DATA_WAIT7:
-	    if (se0)
-	      rx_next = STRIP_EOP0;
-	    else if (rcv_bit)
-	      rx_next = RX_DATA;
+	    ERROR:
+	      rx_next = ABORT1; // choose ABORT1 or ABORT2
 
-	  RX_DATA:
-	    if (rcv_bit) rx_next = RX_DATA_WAIT1;
+	    ABORT1:
+	      rx_next = RESET;
 
-	  STRIP_EOP0:
-	    rx_next = STRIP_EOP1;
+	    ABORT2:
+	      if (j) // IDLE
+		rx_next = TERMINATE;
 
-	  STRIP_EOP1:
-	    rx_next = RESET;
+	    TERMINATE:
+	      rx_next = RESET;
 
-	  ERROR:
-	    rx_next = ABORT1; // choose ABORT1 or ABORT2
-
-	  ABORT1:
-	    rx_next = RESET;
-
-	  ABORT2:
-	    if (j) // IDLE
-	      rx_next = TERMINATE;
-
-	  TERMINATE:
-	    rx_next = RESET;
-
-	  default
-	    rx_next = RESET;
-	endcase
+	    default
+	      rx_next = RESET;
+	  endcase
      end
 
    always_comb
@@ -136,7 +118,7 @@ module usb_rx
 	case (rx_state)
 	  RX_DATA_WAIT0, RX_DATA_WAIT1, RX_DATA_WAIT2,
 	  RX_DATA_WAIT3, RX_DATA_WAIT4, RX_DATA_WAIT5,
-	  RX_DATA_WAIT6, RX_DATA, STRIP_EOP0, STRIP_EOP1:
+	  RX_DATA_WAIT6, RX_DATA, STRIP_EOP:
 	    active = 1'b1;
 
 	  RX_DATA_WAIT7:
@@ -161,7 +143,7 @@ module usb_rx
      else if (clk_en)
        nrzi <= j;
 
-   always_comb d0 <= j ~^ nrzi;
+   always_comb d0 = j ~^ nrzi;
 
    /* bit unstuffing */
    logic [2:0] num_ones;
