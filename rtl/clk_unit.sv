@@ -7,6 +7,8 @@ module clk_unit
 
    import types::*;
 
+   wire pll_clk_96m, pll_clk_48m, pll_clk_12m;
+
    pll pll
      (.inclk0(clk_i),
       .c0(pll_clk_96m),
@@ -16,17 +18,14 @@ module clk_unit
    generate
       if (USB_FULL_SPEED)
 	begin:full_speed
-	   wire pll_clk_96m, pll_clk_48m;
-
 	   assign clk_cpu = pll_clk_96m;
 	   assign clk_usb = pll_clk_48m;
 	end:full_speed
       else
 	begin:low_speed
-           wire pll_clk_12m;
-	   bit  pll_clk_6m;
+	   bit pll_clk_6m;
 
-	   assign clk_cpu = pll_clk_12m;
+	   assign clk_cpu = pll_clk_48m;
 
 	   /* 1:2 clock divider */
 	   always @(posedge pll_clk_12m)
