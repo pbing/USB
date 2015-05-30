@@ -3,6 +3,6 @@ module[ application"
 
 include device.fs
 
-: main ( --)   begin  device-response  again ;
+: main ( --)   begin  service-usb  again ;
 
 ]module
