@@ -28,7 +28,7 @@ endinterface:if_transceiver
 interface if_fifo #(parameter addr_width=4, data_width=8);
    logic [data_width-1:0] data;   // input data
    logic [data_width-1:0] q;      // output data
-   logic                  aclr;   // asynchronous clear
+   logic                  sclr;   // synchronous clear
    logic                  rdreq;  // read request
    logic                  wrreq;  // write request
    logic                  empty;  // FIFO empty

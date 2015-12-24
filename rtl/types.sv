@@ -34,11 +34,21 @@ package types;
 			     RESERVED = 4'b0000
 			     } pid_t;
 
-   typedef  struct {
+   typedef struct {
       logic [3:0] pidx; // inverted PID
       pid_t       pid;  // PID
       logic [6:0] addr; // address
       logic [3:0] endp; // endpoint
       logic [4:0] crc5; // CRC5
    } token_t;
+
+   typedef struct {
+      logic bto;        // bus turnaround time-out
+      logic crc16;      // CRC16 error
+      logic crc5;       // CRC5 error
+      logic pid;        // PID error
+      logic usb_reset;  // USB reset
+      logic stall;      // a STALL handshake was sent by the SIE
+      logic token_done; // token process complete
+   } usb_status_t;
 endpackage

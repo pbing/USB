@@ -5,7 +5,8 @@ module tb_top;
    import types::*;
 
    const realtime tclk24 = 1s/24e6,
-		  tclk   = 1s/((7 * USB_FULL_SPEED + 1) * 6.0e6);
+		  tbit   = 1s/((7 * USB_FULL_SPEED + 1) * 1.5e6),
+		  tclk   = tbit/4;
 
    bit  [1:0]   CLOCK_24;                               //      24 MHz
    bit  [1:0]   CLOCK_27;                               //      27 MHz
@@ -193,31 +194,41 @@ module tb_top;
    initial
      begin:main
 	$timeformat(-9, 3, " ns");
+	$monitor("LEDG='h%h", LEDG);
+	$monitor("LEDR='h%h", LEDR);
 
 	/* reset */
 	KEY[0] = 1'b0;
         #100ns KEY[0] = 1'b1;
 
+	#30us;
 	get_descriptor[6] = 8'd08;
 	get_descriptor[7] = 8'd00;
 	$display("GET_DESCRIPTOR (short)");
-	#30us control_read_transfer(get_descriptor, SHORT_DEVICE_DESCRIPTOR, 0, 0);
+	control_read_transfer(get_descriptor, SHORT_DEVICE_DESCRIPTOR, 0, 0);
 
+/* -----\/----- EXCLUDED -----\/-----
+        #30us;
 	addr = {$random % 8'h80};
 	addr = 8'h05;
 	set_address[2] = addr;
 	$display("SET_ADDRESS('h%h)", addr);
-	#30us control_write_transfer(set_address, '{}, 0, 0);
-
-	$display("GET_DESCRIPTOR (full)");
-	#30us control_read_transfer(GET_DESCRIPTOR, DEVICE_DESCRIPTOR, addr, 0);
-
-/* -----\/----- EXCLUDED -----\/-----
-  	$display("SET_CONFIGURATION");
-	#30us control_write_transfer(SET_CONFIGURATION, '{}, addr, 0);
+	control_write_transfer(set_address, '{}, 0, 0);
  -----/\----- EXCLUDED -----/\----- */
 
-      #100us $stop;
+/* -----\/----- EXCLUDED -----\/-----
+        #30us;
+	$display("GET_DESCRIPTOR (full)");
+	control_read_transfer(GET_DESCRIPTOR, DEVICE_DESCRIPTOR, addr, 0);
+ -----/\----- EXCLUDED -----/\----- */
+
+	/* -----\/----- EXCLUDED -----\/-----
+         #30us;
+  	 $display("SET_CONFIGURATION");
+	 control_write_transfer(SET_CONFIGURATION, '{}, addr, 0);
+	 -----/\----- EXCLUDED -----/\----- */
+
+	#100us $stop;
      end:main
 
    /**********************************************************************
@@ -225,25 +236,29 @@ module tb_top;
     **********************************************************************/
 
    task control_read_transfer(input byte command[], result[], input [6:0] addr, input [3:0] endp);
-
       /* Setup Transaction */
       send_token(SETUP, addr, endp);
       send_data(DATA0, command);
       receive_pid(ACK);
 
       /* Data Transaction */
-      #10us send_token(IN, addr, endp);
+      repeat (2)
+	begin
+	   send_token(IN, addr, endp);
+	   receive_pid(NAK);
+	end
+
+      send_token(IN, addr, endp);
       receive_data(DATA1, result);
-      #20us send_pid(ACK);
+      send_pid(ACK);
 
       /* Status Transaction */
-      #10us send_token(OUT, addr, endp);
+      send_token(OUT, addr, endp);
       send_data(DATA1); // ZLP
       receive_pid(ACK);
    endtask
 
    task control_write_transfer(input byte command[], data[], input [6:0] addr, input [3:0] endp);
-
       /* Setup Transaction */
       send_token(SETUP, addr, endp);
       send_data(DATA0, command);
@@ -252,15 +267,15 @@ module tb_top;
       /* Data Transaction */
       if (data.size() > 0)
 	begin
-	   #10us send_token(OUT, addr, endp);
+	   send_token(OUT, addr, endp);
 	   send_data(DATA1, data);
 	   receive_pid(ACK);
 	end
 
       /* Status Transaction */
-      #10us send_token(IN, addr, endp);
+      send_token(IN, addr, endp);
       receive_data(DATA1); // ZLP
-      #20us send_pid(ACK);
+      send_pid(ACK);
    endtask
 
    task send_pid(input pid_t pid);

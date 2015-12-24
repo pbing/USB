@@ -4,7 +4,7 @@
 // MODULE: scfifo 
 
 // ============================================================
-// File Name: fifo8x16.v
+// File Name: fifo8x16_show_ahead.v
 // Megafunction Name(s):
 // 			scfifo
 //
@@ -36,7 +36,7 @@
 // synopsys translate_off
 `timescale 1 ps / 1 ps
 // synopsys translate_on
-module fifo8x16 (
+module fifo8x16_show_ahead (
 	clock,
 	data,
 	rdreq,
@@ -79,7 +79,7 @@ module fifo8x16 (
 		scfifo_component.add_ram_output_register = "OFF",
 		scfifo_component.intended_device_family = "Cyclone II",
 		scfifo_component.lpm_numwords = 16,
-		scfifo_component.lpm_showahead = "OFF",
+		scfifo_component.lpm_showahead = "ON",
 		scfifo_component.lpm_type = "scfifo",
 		scfifo_component.lpm_width = 8,
 		scfifo_component.lpm_widthu = 4,
@@ -104,7 +104,7 @@ endmodule
 // Retrieval info: PRIVATE: Full NUMERIC "1"
 // Retrieval info: PRIVATE: INTENDED_DEVICE_FAMILY STRING "Cyclone II"
 // Retrieval info: PRIVATE: LE_BasedFIFO NUMERIC "0"
-// Retrieval info: PRIVATE: LegacyRREQ NUMERIC "1"
+// Retrieval info: PRIVATE: LegacyRREQ NUMERIC "0"
 // Retrieval info: PRIVATE: MAX_DEPTH_BY_9 NUMERIC "0"
 // Retrieval info: PRIVATE: OVERFLOW_CHECKING NUMERIC "1"
 // Retrieval info: PRIVATE: Optimize NUMERIC "0"
@@ -129,7 +129,7 @@ endmodule
 // Retrieval info: CONSTANT: ADD_RAM_OUTPUT_REGISTER STRING "OFF"
 // Retrieval info: CONSTANT: INTENDED_DEVICE_FAMILY STRING "Cyclone II"
 // Retrieval info: CONSTANT: LPM_NUMWORDS NUMERIC "16"
-// Retrieval info: CONSTANT: LPM_SHOWAHEAD STRING "OFF"
+// Retrieval info: CONSTANT: LPM_SHOWAHEAD STRING "ON"
 // Retrieval info: CONSTANT: LPM_TYPE STRING "scfifo"
 // Retrieval info: CONSTANT: LPM_WIDTH NUMERIC "8"
 // Retrieval info: CONSTANT: LPM_WIDTHU NUMERIC "4"
@@ -152,10 +152,10 @@ endmodule
 // Retrieval info: CONNECT: empty 0 0 0 0 @empty 0 0 0 0
 // Retrieval info: CONNECT: full 0 0 0 0 @full 0 0 0 0
 // Retrieval info: CONNECT: q 0 0 8 0 @q 0 0 8 0
-// Retrieval info: GEN_FILE: TYPE_NORMAL fifo8x16.v TRUE
-// Retrieval info: GEN_FILE: TYPE_NORMAL fifo8x16.inc FALSE
-// Retrieval info: GEN_FILE: TYPE_NORMAL fifo8x16.cmp FALSE
-// Retrieval info: GEN_FILE: TYPE_NORMAL fifo8x16.bsf FALSE
-// Retrieval info: GEN_FILE: TYPE_NORMAL fifo8x16_inst.v FALSE
-// Retrieval info: GEN_FILE: TYPE_NORMAL fifo8x16_bb.v FALSE
+// Retrieval info: GEN_FILE: TYPE_NORMAL fifo8x16_show_ahead.v TRUE
+// Retrieval info: GEN_FILE: TYPE_NORMAL fifo8x16_show_ahead.inc FALSE
+// Retrieval info: GEN_FILE: TYPE_NORMAL fifo8x16_show_ahead.cmp FALSE
+// Retrieval info: GEN_FILE: TYPE_NORMAL fifo8x16_show_ahead.bsf FALSE
+// Retrieval info: GEN_FILE: TYPE_NORMAL fifo8x16_show_ahead_inst.v FALSE
+// Retrieval info: GEN_FILE: TYPE_NORMAL fifo8x16_show_ahead_bb.v FALSE
 // Retrieval info: LIB_FILE: altera_mf

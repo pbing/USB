@@ -1,10 +1,5 @@
 \ USB definitions
 
-\ PID
-$1 constant %out
-$9 constant %in
-$d constant %setup
-
 \ request types
 $00 constant host-to-device
 $01 constant host-to-interface

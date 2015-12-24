@@ -15,7 +15,7 @@ h# 4016 constant io-hex3
 h# 4020 constant io-key 
 h# 4022 constant io-sw  
 
-\ USB endpoints
+\ USB endpoints and control registers
 h# 5000 constant io-endpi0-control
 h# 5002 constant io-endpi0-data
 
@@ -25,4 +25,6 @@ h# 5006 constant io-endpi1-data
 h# 5040 constant io-endpo0-control
 h# 5042 constant io-endpo0-data
 
-h# 5100 constant io-usb-control
+h# 5100 constant io-usb-address
+h# 5102 constant io-usb-token
+h# 5104 constant io-usb-status

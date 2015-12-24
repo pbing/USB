@@ -110,7 +110,7 @@ module CII_Starter_TOP
 
    /* common signals */
    wire reset;
-   wire clk, clk_cpu;
+   wire clk;
 
    /* USB */
    d_port_t   usb_d_i;        // USB port D+, D- (input)
@@ -135,14 +135,13 @@ module CII_Starter_TOP
 	end:slow_speed
    endgenerate
 
-   if_io io_cpu  (.clk(clk_cpu));
-   if_io io_sie  (.clk(clk_cpu));
-   if_io io_board(.clk(clk_cpu));
+   if_io io_cpu  (.clk(clk));
+   if_io io_sie  (.clk(clk));
+   if_io io_board(.clk(clk));
 
    clk_unit clk_unit
      (.clk_i(CLOCK_24[0]),
-      .clk_cpu(clk_cpu),
-      .clk_usb(clk));
+      .clk_o(clk));
 
    sync_reset sync_reset
      (.clk(clk),
@@ -150,7 +149,7 @@ module CII_Starter_TOP
       .reset(reset));
 
    j1 j1
-     (.sys_clk_i(clk_cpu),
+     (.sys_clk_i(clk),
       .sys_rst_i(reset),
       .io_din(io_cpu.din),
       .io_rd(io_cpu.rd),

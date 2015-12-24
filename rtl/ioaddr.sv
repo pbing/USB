@@ -26,5 +26,7 @@ package ioaddr;
      ENDPO0_CONTROL = 16'h5040,
      ENDPO0_DATA    = 16'h5042,
 
-     USB_CONTROL    = 16'h5100;
+     USB_ADDRESS    = 16'h5100,
+     USB_TOKEN      = 16'h5102,
+     USB_STATUS     = 16'h5104;
 endpackage
