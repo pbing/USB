@@ -7,8 +7,8 @@ module io_intercon
 
    import ioaddr::*;
 
-   wire sie_sel   = (cpu.addr[15:12] == ENDPI0_CONTROL[15:12]);
-   wire board_sel = (cpu.addr[15:12] == LEDG[15:12]);
+   wire sie_sel   = (cpu.addr[15:12] == SIE_BASE_ADDR[15:12]);
+   wire board_sel = (cpu.addr[15:12] == BOARD_BASE_ADDR[15:12]);
 
    always_comb
      begin
