@@ -33,7 +33,7 @@ module board_io
 
    always_comb
      begin
-	io.din = 16'bx;
+	io.din = 16'b0;
 
 	if (io.rd)
 	  case (io.addr[11:0])
