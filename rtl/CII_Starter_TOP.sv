@@ -157,7 +157,7 @@ module CII_Starter_TOP
       .io_addr(io_cpu.addr),
       .io_dout(io_cpu.dout));
 
-   io_bus io_bus
+   io_intercon io_intercon
      (.cpu(io_cpu),
       .sie(io_sie),
       .board(io_board));
