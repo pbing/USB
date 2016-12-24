@@ -94,7 +94,7 @@ variable endp0-end
 
 : acknowledge-packet0 ( -- )   h# 2 io-endpi0-control ! ;  \ io-endpi0.zlp = 1'b1 (FIXME also other endpoints)
 
-: short-packet? ( -- f)   endp0-end @  endp0-start @  endp0-max-length +  u< ;
+: short-packet? ( -- f )   endp0-end @  endp0-start @  endp0-max-length +  u> invert ;
 
 \ write IN transfer data to host
 : copy-data-to-ep0 ( -- )
