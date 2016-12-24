@@ -1,6 +1,6 @@
 # Create firmware
 
-FORTH=~/SwiftForth/bin/osx/sf
+FORTH=sf
 #FORTH=gforth -e
 
 J1=../../J1
