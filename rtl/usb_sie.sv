@@ -324,7 +324,7 @@ module usb_sie
    /************************************************************************
     * Endpoint interface
     ************************************************************************/
-   always_comb endpo0.rdreq = ((io.addr[11:0] == ENDPO0_DATA[11:0]) && io.rd);
+   always_comb endpo0.rdreq = ((io.addr == ENDPO0_DATA) && io.rd);
 
    always_comb
      begin
@@ -355,12 +355,12 @@ module usb_sie
 	endcase
 
 	if (io.rd)
-	  case (io.addr[11:0])
-	    ENDPI0_CONTROL[11:0]: io.din[0]    = endpi0.full;
-	    ENDPI1_CONTROL[11:0]: io.din[0]    = endpi1.full;
-	    ENDPO0_CONTROL[11:0]: io.din[0]    = endpo0.empty;
-	    ENDPO0_DATA   [11:0]: io.din[7:0]  = endpo0.q;
-	    USB_ADDRESS   [11:0]: io.din[6:0]  = device_addr;
+	  case (io.addr)
+	    ENDPI0_CONTROL: io.din[0]   = endpi0.full;
+	    ENDPI1_CONTROL: io.din[0]   = endpi1.full;
+	    ENDPO0_CONTROL: io.din[0]   = endpo0.empty;
+	    ENDPO0_DATA   : io.din[7:0] = endpo0.q;
+	    USB_ADDRESS   : io.din[6:0] = device_addr;
 
 	    USB_TOKEN:
 	      begin
@@ -414,9 +414,9 @@ module usb_sie
 	endcase
 
 	if (io.wr)
-	  case (io.addr[11:0])
-	    ENDPI0_DATA[11:0]: endpi0.wrreq = 1'b1;
-	    ENDPI1_DATA[11:0]: endpi1.wrreq = 1'b1;
+	  case (io.addr)
+	    ENDPI0_DATA: endpi0.wrreq = 1'b1;
+	    ENDPI1_DATA: endpi1.wrreq = 1'b1;
 	  endcase
      end
 
@@ -428,7 +428,7 @@ module usb_sie
        end
      else
        begin
-	  if (io.wr && (io.addr[11:0] == ENDPI0_CONTROL[11:0]))
+	  if (io.wr && (io.addr == ENDPI0_CONTROL))
 	    begin
 	       endpi0_stall <= io.dout[2];
 	       endpi0_ack   <= io.dout[1];
@@ -452,7 +452,7 @@ module usb_sie
        end
      else
        begin
-	  if (io.wr && (io.addr[11:0] == ENDPI1_CONTROL[11:0]))
+	  if (io.wr && (io.addr == ENDPI1_CONTROL))
 	    begin
 	       endpi1_stall <= io.dout[2];
 	       endpi1_ack   <= io.dout[1];
@@ -475,7 +475,7 @@ module usb_sie
      if (transceiver.usb_reset)
        device_addr <= 7'h0;
      else
-       if (io.wr && (io.addr[11:0] == USB_ADDRESS[11:0]))
+       if (io.wr && (io.addr == USB_ADDRESS))
 	 device_addr <= io.dout[6:0];
 
    /************************************************************************
@@ -494,7 +494,7 @@ module usb_sie
        end
      else
        begin
-	  if (io.wr && (io.addr[11:0] == USB_STATUS[11:0]))
+	  if (io.wr && (io.addr == USB_STATUS))
 	    begin
 	       var usb_status_t clear;
 

@@ -194,8 +194,8 @@ module tb_top;
    initial
      begin:main
 	$timeformat(-9, 3, " ns");
-	$monitor("LEDG='h%h", LEDG);
-	$monitor("LEDR='h%h", LEDR);
+	//$monitor("LEDG='h%h", LEDG);
+	//$monitor("LEDR='h%h", LEDR);
 
 	/* reset */
 	KEY[0] = 1'b0;
@@ -222,11 +222,11 @@ module tb_top;
 	control_read_transfer(GET_DESCRIPTOR, DEVICE_DESCRIPTOR, addr, 0);
  -----/\----- EXCLUDED -----/\----- */
 
-	/* -----\/----- EXCLUDED -----\/-----
+ /* -----\/----- EXCLUDED -----\/-----
          #30us;
   	 $display("SET_CONFIGURATION");
 	 control_write_transfer(SET_CONFIGURATION, '{}, addr, 0);
-	 -----/\----- EXCLUDED -----/\----- */
+ -----/\----- EXCLUDED -----/\----- */
 
 	#100us $stop;
      end:main
@@ -318,7 +318,7 @@ module tb_top;
       do @(posedge clk); while (tx_d_en);
    endtask
 
-   task send_data(input pid_t pid, input byte data[]='{});
+   task send_data(input pid_t pid, input byte data[] = '{});
       /* PID */
       @(posedge clk);
       tx_valid <= 1'b1;
@@ -348,7 +348,7 @@ module tb_top;
       do @(posedge clk); while (tx_d_en);
    endtask
 
-   task receive_data(input pid_t expected_pid, input byte expected_data[]='{});
+   task receive_data(input pid_t expected_pid, input byte expected_data[] = '{});
       receive_pid (expected_pid);
 
       foreach (expected_data[i])
@@ -356,8 +356,8 @@ module tb_top;
 	   do @(posedge clk); while (!rx_valid);
 	   $display("%t %M(%h)", $realtime, rx_data);
 
-	   if (rx_data != expected_data[i])
-	     $display ("Error: %t %M (expected = %h, received = %h)", $realtime, expected_data[i], rx_data);
+	   assert (rx_data == expected_data[i])
+	     else $error("expected = %h, received = %h", expected_data[i], rx_data);
 	end
 
       /* CRC */
@@ -377,8 +377,8 @@ module tb_top;
       if (received_pid == ACK || received_pid == NAK || received_pid == STALL)
 	$display("%t %M(%p)", $realtime, received_pid);
 
-      if (received_pid != expected_pid)
-	$display ("Error: %t %M (expected = %p, received = %p)", $realtime, expected_pid, received_pid);
+      assert (received_pid == expected_pid)
+	else $error("expected = %p, received = %p", expected_pid, received_pid);
    endtask
 
    /**********************************************************************
