@@ -321,6 +321,7 @@ module tb_top;
    task send_data(input pid_t pid, input byte data[] = '{});
       /* PID */
       @(posedge clk);
+      $display("%t %M(pid=%p)", $realtime, pid);
       tx_valid <= 1'b1;
       tx_data  <= {~pid, pid};
       do @(posedge clk); while (!tx_ready);
