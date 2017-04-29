@@ -3,7 +3,7 @@
 FORTH=sf
 #FORTH=gforth -e
 
-J1=../../J1
+J1=../J1
 
 CORE=crossj1.fs basewords.fs nuc.fs
 
