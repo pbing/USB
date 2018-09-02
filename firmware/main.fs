@@ -7,7 +7,7 @@ target
 
 \ low high  type          name
 $0000 $1fff cdata section ROM  \ ROM
-$4000 $47ff udata section URAM \ uninitalized RAM
+$2000 $27ff udata section URAM \ uninitalized RAM
 \ ... ...   idata section IRAM \ initalized RAM
 
 ROM

@@ -8,7 +8,7 @@ git submodule update --init --recursive
 ```
 
 ## Used Parts
-- [Altera Cyclone II FPGA Starter Development Kit](http://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&CategoryNo=53&No=83).
+- [Cyclone V GX Starter Kit](https://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&CategoryNo=167&No=830&PartNo=1)
 
 - The USB D+ and D- pads were [configured](https://github.com/pbing/USB/blob/master/doc/USB%20Pad%20Configuration.pdf)
   for low-speed (1.5 Mbit/s).

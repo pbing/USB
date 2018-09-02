@@ -3,7 +3,7 @@
 package ioaddr;
    parameter [15:0]
      /* RAM */
-     RAM_BASE_ADDR = 16'h4000,
+     RAM_BASE_ADDR = 16'h2000,
 
 
 
