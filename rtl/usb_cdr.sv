@@ -4,130 +4,81 @@
  * http://www.usb.org/developers/docs/whitepapers/siewp.pdf
  */
 
+`default_nettype none
+
 module usb_cdr
   import types::*;
-   (input  wire     reset, // system reset
-    input  wire     clk,   // system clock (slow speed: 6 MHz, full speed: 48 MHz)
-    input  d_port_t d,     // data from PHY
-    output logic    q,     // retimed data
-    output logic    en,    // data enable
-    output logic    eop,   // end of packet
-    output logic    se0);  // SE0 state
+   (input  wire     reset,          // system reset
+    input  wire     clk,            // USB clock
+    input  wire     d,              // data from PHY
+    input  wire     se0,            // SE0 state
+    input  wire     usb_full_speed, // 0: USB low-speed 1:USB full-speed
+    output logic    q,              // retimed data
+    output logic    en,             // data enable
+    output logic    eop);           // end of packet
 
    /******************************
     * Clock and data recover
     ******************************/
 
-   /* synchronizer */
-   logic a, b;
-
-   always @(posedge clk)
-     a <= (d == K);
-
-   always @(negedge clk)
-     b <= (d == K);
-
    /* CDR FSM */
-   logic [3:0] cdr_state, cdr_next;
+   enum int unsigned {S[16]} state, next;
 
-   always @(posedge clk)
+   always_ff @(posedge clk)
      if (reset)
-       cdr_state <= 4'hc;
+       state <= S12;
      else
-       cdr_state <= cdr_next;
+       state <= next;
 
    always_comb
-     case (cdr_state)
-       /* Init */
-       4'hc:
-	 if (!b)
-	   cdr_next = 4'hd;
-	 else
-	   cdr_next = 4'hc;
+     case (state)
+       S12: if (!d) next = S13; else next = S12;
 
-       4'hd:
-	 if (b)
-	   cdr_next = 4'h5;
-	 else
-	   cdr_next = 4'hd;
+       S13: if (d) next = S5; else next = S13;
 
-       /* D = 1 */
-       4'h5:
-	 cdr_next = 4'h7;
+       S5: next = S7;
 
-       4'h7:
-	 if (a)
-	   cdr_next = 4'h6;
-	 else
-	   cdr_next = 4'hb;
+       S7: if (d) next = S6; else next = S11;
 
-       4'h6:
-	 if (b)
-	   cdr_next = 4'h4;
-	 else
-	   cdr_next = 4'h1;
+       S6: if (d) next = S4; else next = S1;
 
-       4'h4:
-	 if (b)
-	   cdr_next = 4'h5;
-	 else
-	   cdr_next = 4'h1;
+       S4: if (d) next = S5; else next = S1;
 
-       4'hf:
-	 cdr_next = 4'h6;
+       S1: next = S3;
 
-       /* D = 0 */
-       4'h1:
-	 cdr_next = 4'h3;
+       S3: if (!d) next = S2; else next = S15;
 
-       4'h3:
-	 if (!a)
-	   cdr_next = 4'h2;
-	 else
-	   cdr_next = 4'hf;
+       S2: if (!d) next = S0; else next = S5;
 
-       4'h2:
-	 if (!b)
-	   cdr_next = 4'h0;
-	 else
-	   cdr_next = 4'h5;
+       S0: if (!d) next = S1; else next = S5;
 
-       4'h0:
-	 if (!b)
-	   cdr_next = 4'h1;
-	 else
-	   cdr_next = 4'h5;
+       S11: next = S2;
 
-       4'hb:
-	 cdr_next = 4'h2;
+       S15: next = S6;
 
-       default
-	 cdr_next = 4'hc;
+       default next = S12;
      endcase
 
-   always_comb q = cdr_state[2];
-
-   always_comb en  = ((cdr_state == 4'h3) || (cdr_state == 4'h7));
+   always_comb q  = d;
+   always_comb en = state == S3 || state == S7;
 
    /******************************
     * EOP detection
     ******************************/
-
-   /* synchronizer */
    logic j;
 
-   always @(posedge clk)
-     begin
-	j   <= (d == J);
-	se0 <= (d == SE0);
-     end
+   always_comb
+     if (usb_full_speed)
+       j = d & ~se0;
+     else
+       j = ~d & ~se0;
 
    /* EOP FSM */
-   enum int unsigned {S[5]} eop_state, eop_next;
+   enum int unsigned {EOP_S[5]} eop_state, eop_next;
 
-   always @(posedge clk)
+   always_ff @(posedge clk)
      if (reset)
-       eop_state <= S0;
+       eop_state <= EOP_S0;
      else
        eop_state <= eop_next;
 
@@ -136,42 +87,44 @@ module usb_cdr
 	eop = 1'b0;
 
 	case (eop_state)
-	  S0:
+	  EOP_S0:
 	    if (se0)
-	      eop_next = S1;
+	      eop_next = EOP_S1;
 	    else
-	      eop_next = S0;
+	      eop_next = EOP_S0;
 
-	  S1:
+	  EOP_S1:
 	    if (se0)
-	      eop_next = S2;
+	      eop_next = EOP_S2;
 	    else
-	      eop_next = S0;
+	      eop_next = EOP_S0;
 
-	  S2:
+	  EOP_S2:
 	    if (se0)
-	      eop_next = S3;
+	      eop_next = EOP_S3;
 	    else
-	      eop_next = S0;
+	      eop_next = EOP_S0;
 
-	  S3:
+	  EOP_S3:
 	    if (se0)
-	      eop_next = S3;
+	      eop_next = EOP_S3;
 	    else if (j)
 	      begin
 		 eop      = 1'b1;
-		 eop_next = S0;
+		 eop_next = EOP_S0;
 	      end
 	    else
-	      eop_next = S4;
+	      eop_next = EOP_S4;
 
-	  S4:
+	  EOP_S4:
 	    begin
 	       if (j)
 		 eop = 1'b1;
 
-	       eop_next = S0;
+	       eop_next = EOP_S0;
 	    end
 	endcase
      end
 endmodule
+
+`resetall

@@ -1,7 +1,7 @@
 /* Types */
 
 package types;
-   parameter [1:0] USB_FULL_SPEED = 0; // 0:Low-Speed  1:Full-Speed
+   parameter bit USB_FULL_SPEED = 0; // 0:Low-Speed  1:Full-Speed
 
    /* d_port_t = {D+, D-}
     * Symbols J and K have inverse polarity in slow/full speed.

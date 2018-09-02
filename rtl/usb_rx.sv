@@ -1,9 +1,9 @@
-/* USB low/full speed receiver */
+/* USB receiver */
 
 module usb_rx
   import types::*;
    (input  wire        reset,  // system reset
-    input  wire        clk,    // system clock (slow speed: 6 MHz, full speed: 48 MHz)
+    input  wire        clk,    // clock
     input  wire        clk_en, // clock enable
     input  wire        d_i,    // data from CDR
     input  wire        eop,    // EOP from CDR

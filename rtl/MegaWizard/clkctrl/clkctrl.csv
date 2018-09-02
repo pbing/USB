@@ -1,0 +1,18 @@
+# system info clkctrl on 2018.08.31.17:22:04
+system_info:
+name,value
+DEVICE,5CGXFC5C6F27C7
+DEVICE_FAMILY,Cyclone V
+GENERATION_ID,1535728923
+#
+#
+# Files generated for clkctrl on 2018.08.31.17:22:04
+files:
+filepath,kind,attributes,module,is_top
+simulation/clkctrl.v,VERILOG,,clkctrl,true
+simulation/submodules/clkctrl_altclkctrl_0.v,VERILOG,,clkctrl_altclkctrl_0,false
+#
+# Map from instance-path to kind of module
+instances:
+instancePath,module
+clkctrl.altclkctrl_0,clkctrl_altclkctrl_0

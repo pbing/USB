@@ -1,15 +1,22 @@
-/* Synchronize reset from external key. */
+/* Synchronize reset */
+
+`default_nettype none
 
 module sync_reset
-  (input  wire  clk,    // system clock
-   input  wire  key,    // push button
-   output logic reset); // syncronized reset (high active)
+  #(parameter n = 3)
+   (input  wire clk,
+    input  wire reset_in_n,
+    output wire reset);
 
-   logic [1:2] reset_s; // syncronization registers
+   logic [1:n] sync;
 
-   always_ff @(posedge clk or negedge key)
-     if (!key)
-       {reset_s, reset} <= '1;
+   always_ff @(posedge clk or negedge reset_in_n)
+     if (!reset_in_n)
+       sync <= '1;
      else
-       {reset_s, reset} <= {1'b0, reset_s};
+       sync <= {1'b0, sync[$left(sync):$right(sync) - 1]};
+
+   assign reset = sync[$right(sync)];
 endmodule
+
+`resetall

@@ -1,5 +1,6 @@
 \ Descriptors
 
+ROM
 create report-descriptor1
     $05 c, $01 c, \ usage page (generic desktop)
     $09 c, $02 c, \ usage mouse

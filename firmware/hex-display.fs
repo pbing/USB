@@ -1,8 +1,9 @@
 \ 4-digit HEX display
 
+ROM
 create hex-display-table
-  h# 3f , h# 06 , h# 5b , h# 4f , h# 66 , h# 6d , h# 7d , h# 07 , \ 0 1 2 3 4 5 6 7
-  h# 7f , h# 6f , h# 77 , h# 7c , h# 39 , h# 5e , h# 79 , h# 71 , \ 8 9 A b C d E F
+  $3f , $06 , $5b , $4f , $66 , $6d , $7d , $07 , \ 0 1 2 3 4 5 6 7
+  $7f , $6f , $77 , $7c , $39 , $5e , $79 , $71 , \ 8 9 A b C d E F
 
 \ convert number n to digit and display it at addr
 : hex-display-digit! ( n addr -- ) >r cells hex-display-table + @ r> ! ;

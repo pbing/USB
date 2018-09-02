@@ -1,5 +1,6 @@
 \ IN token processing
 
+ROM
 \ Process EP0 IN
 : ep0-in ( -- )
     set-address?    if  0-length-packet  usb-pending-address @  io-usb-address !  exit then

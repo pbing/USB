@@ -1,3 +1,2 @@
-basewords.fs
-crossj1.fs
-nuc.fs
+*.mif
+*.lst

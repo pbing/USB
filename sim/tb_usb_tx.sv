@@ -6,8 +6,8 @@ module tb_usb_tx;
 
    import types::*;
 
-   const realtime tclk = 1s/((7 * USB_FULL_SPEED + 1) * 6.0e6),
-		  tbit = 4 * tclk;
+   const realtime tbit = 1s / ((7 * USB_FULL_SPEED + 1) * 1.5e6),
+		  tclk = tbit / 4;
 
    bit       reset = 1'b1;
    bit       clk;
@@ -23,7 +23,7 @@ module tb_usb_tx;
 
    assign d = d_port_t'{(d_en) ? d_o : 2'bz};
 
-   always #(tclk/2) clk = ~clk;
+   always #(tclk / 2) clk = ~clk;
 
    always @(posedge clk)
      if (ready)
@@ -36,7 +36,7 @@ module tb_usb_tx;
 
 	repeat (10) @(posedge clk);
 	valid <= 1'b1; pid(DATA0);
-	repeat (16*8*30) @(posedge clk);
+	repeat (16 * 8 * 30) @(posedge clk);
 	valid = 1'b0;
 
 	repeat (16*8) @(posedge clk);
@@ -44,6 +44,6 @@ module tb_usb_tx;
      end:main
 
    task pid(pid_t x);
-      data <= {x,~x};
+      data <= {x, ~x};
    endtask
 endmodule

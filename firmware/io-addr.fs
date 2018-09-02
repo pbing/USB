@@ -2,29 +2,29 @@
 \ same as in rtl/ioaddr.sv
 
 \ LED
-h# 4000 constant io-ledg
-h# 4002 constant io-ledr
+$5000 constant io-ledg
+$5002 constant io-ledr
 
 \ HEX display
-h# 4010 constant io-hex0
-h# 4012 constant io-hex1
-h# 4014 constant io-hex2
-h# 4016 constant io-hex3
+$5010 constant io-hex0
+$5012 constant io-hex1
+$5014 constant io-hex2
+$5016 constant io-hex3
 
 \ keys and switches
-h# 4020 constant io-key 
-h# 4022 constant io-sw  
+$5020 constant io-key 
+$5022 constant io-sw  
 
 \ USB endpoints and control registers
-h# 5000 constant io-endpi0-control
-h# 5002 constant io-endpi0-data
+$6000 constant io-endpi0-control
+$6002 constant io-endpi0-data
 
-h# 5004 constant io-endpi1-control
-h# 5006 constant io-endpi1-data
+$6004 constant io-endpi1-control
+$6006 constant io-endpi1-data
 
-h# 5040 constant io-endpo0-control
-h# 5042 constant io-endpo0-data
+$6040 constant io-endpo0-control
+$6042 constant io-endpo0-data
 
-h# 5100 constant io-usb-address
-h# 5102 constant io-usb-token
-h# 5104 constant io-usb-status
+$6100 constant io-usb-address
+$6102 constant io-usb-token
+$6104 constant io-usb-status

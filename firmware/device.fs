@@ -7,6 +7,7 @@ include io-addr.fs
 include usb-defs.fs
 include descriptors.fs
 
+URAM
 variable usb-state
 0 constant powered-state
 1 constant default-state
@@ -25,6 +26,7 @@ variable endp0-start
 variable endp0-end
 8 constant endp0-max-length
 
+ROM
 : usb-init  ( -- )
     powered-state usb-state !
     h# 0 usb-pending-address !  h# 0 io-usb-address !

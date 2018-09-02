@@ -1,28 +1,22 @@
 # Create firmware
 
-FORTH=sf
-#FORTH=gforth -e
+FORTH = /usr/local/opt/SwiftForth/bin/osx/sf
+#FORTH = gforth -e
 
-J1=../J1
+VPATH = ../../J1_WB/j1_forth
 
-CORE=crossj1.fs basewords.fs nuc.fs
+SRC = crossj1.fs \
+      basewords.fs \
+      nuc.fs \
+      main.fs
 
 .PHONY: sim syn
 
-j1.mif j1.lst: $(CORE) *.fs Makefile
+j1.mif j1.lst: $(SRC) *.fs
 	$(FORTH) main.fs
 
 sim: j1.mif
-	cp $< ../sim
+	cp $^ ../sim
 
 syn: j1.mif
-	cp $< ../syn
-
-crossj1.fs: $(J1)/src/crossj1.fs
-	cp $< $@
-
-basewords.fs: $(J1)/src/basewords.fs
-	cp $< $@
-
-nuc.fs: $(J1)/src/nuc.fs
-	cp $< $@
+	cp $^ ../syn

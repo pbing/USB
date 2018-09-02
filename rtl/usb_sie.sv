@@ -2,9 +2,26 @@
 
 module usb_sie
   (if_transceiver.sie transceiver, // USB tranceiver interface
-   if_io.slave        io);         // J1 I/O
+   if_wb.slave        wb);         // J1 I/O
 
    import types::*, ioaddr::*;
+
+   logic        valid;
+   logic        io_ren;
+   logic        io_wen;
+   wire  [11:0] io_adr;
+
+   /* work around missing modport expressions */
+   wire  [15:0] wb_dat_i;
+   logic [15:0] wb_dat_o;
+
+`ifdef NO_MODPORT_EXPRESSIONS
+   assign wb_dat_i = wb.dat_m;
+   assign wb.dat_s = wb_dat_o;
+`else
+   assign wb_dat_i = wb.dat_i;
+   assign wb.dat_o = wb_dat_o;
+`endif
 
    var token_t      token;
    var usb_status_t usb_status;
@@ -19,39 +36,42 @@ module usb_sie
    logic        endpi0_stall, endpi1_stall;
    logic        endpi0_ack, endpi1_ack;
 
-   if_fifo endpi0();
-   if_fifo endpo0();
-   if_fifo endpi1();
+   if_fifo endpi0(.rdclk(transceiver.clk), .wrclk(wb.clk), .aclr(transceiver.usb_reset));
+   if_fifo endpi1(.rdclk(transceiver.clk), .wrclk(wb.clk), .aclr(transceiver.usb_reset));
+   if_fifo endpo0(.wrclk(transceiver.clk), .rdclk(wb.clk), .aclr(transceiver.usb_reset));
 
-   fifo8x16 fifo_endpi0
-     (.sclr(endpi0.sclr),
-      .clock(transceiver.clk),
-      .data(endpi0.data),
-      .rdreq(endpi0.rdreq),
-      .wrreq(endpi0.wrreq),
-      .q(endpi0.q),
-      .empty(endpi0.empty),
-      .full(endpi0.full));
+   fifo16x8 fifo_endpi0
+     (.aclr    (endpi0.aclr),
+      .data    (endpi0.data),
+      .rdclk   (endpi0.rdclk),
+      .rdreq   (endpi0.rdreq),
+      .wrclk   (endpi0.wrclk),
+      .wrreq   (endpi0.wrreq),
+      .q       (endpi0.q),
+      .rdempty (endpi0.rdempty),
+      .wrfull  (endpi0.wrfull));
 
-   fifo8x16_show_ahead fifo_endpo0
-     (.sclr(endpo0.sclr),
-      .clock(transceiver.clk),
-      .data(endpo0.data),
-      .rdreq(endpo0.rdreq),
-      .wrreq(endpo0.wrreq),
-      .q(endpo0.q),
-      .empty(endpo0.empty),
-      .full(endpo0.full)); 
+   fifo16x8 fifo_endpi1
+     (.aclr    (endpi1.aclr),
+      .data    (endpi1.data),
+      .rdclk   (endpi1.rdclk),
+      .rdreq   (endpi1.rdreq),
+      .wrclk   (endpi1.wrclk),
+      .wrreq   (endpi1.wrreq),
+      .q       (endpi1.q),
+      .rdempty (endpi1.rdempty),
+      .wrfull  (endpi1.wrfull));
 
-   fifo8x16 fifo_endpi1
-     (.sclr(endpi1.sclr),
-      .clock(transceiver.clk),
-      .data(endpi1.data),
-      .rdreq(endpi1.rdreq),
-      .wrreq(endpi1.wrreq),
-      .q(endpi1.q),
-      .empty(endpi1.empty),
-      .full(endpi1.full));
+   fifo16x8_show_ahead fifo_endpo0
+     (.aclr    (endpo0.aclr),
+      .data    (endpo0.data),
+      .rdclk   (endpo0.rdclk),
+      .rdreq   (endpo0.rdreq),
+      .wrclk   (endpo0.wrclk),
+      .wrreq   (endpo0.wrreq),
+      .q       (endpo0.q),
+      .rdempty (endpo0.rdempty),
+      .wrfull  (endpo0.wrfull)); 
 
    /************************************************************************
     * packet FSM
@@ -86,7 +106,7 @@ module usb_sie
 
 	  S_TOKEN1:
 	    if (transceiver.rx_valid)
-	      if (addr == device_addr)
+	      if (1'b1 /*addr == device_addr*/) // ignore address because only one device
 		fsm_packet_next = S_TOKEN2;
 	      else
 		fsm_packet_next = S_TOKEN0;
@@ -324,7 +344,9 @@ module usb_sie
    /************************************************************************
     * Endpoint interface
     ************************************************************************/
-   always_comb endpo0.rdreq = ((io.addr == ENDPO0_DATA) && io.rd);
+   assign io_adr = wb.adr[10:0] << 1;
+
+   always_comb endpo0.rdreq = io_adr == ENDPO0_DATA && io_ren;
 
    always_comb
      begin
@@ -333,73 +355,77 @@ module usb_sie
 	endp_q     = 8'bx;
 	endp_stall = 1'bx;
 	endp_ack   = 1'bx;
-	io.din     = 16'b0; // Unused bits must be '0' because of OR bus connection.
 
 	case (token.endp)
 	  4'd0:
 	    begin
-	       endp_empty = endpi0.empty;
+	       endp_empty = endpi0.rdempty;
 	       endp_q     = endpi0.q;
 	       endp_ack   = endpi0_ack;
 	       endp_stall = endpi0_stall;
-	       endp_full  = endpo0.full;
+	       endp_full  = endpo0.wrfull;
 	    end
 
 	  4'd1:
 	    begin
-	       endp_empty = endpi1.empty;
+	       endp_empty = endpi1.rdempty;
 	       endp_q     = endpi1.q;
 	       endp_ack   = endpi1_ack;
 	       endp_stall = endpi1_stall;
 	    end
 	endcase
-
-	if (io.rd)
-	  case (io.addr)
-	    ENDPI0_CONTROL: io.din[0]   = endpi0.full;
-	    ENDPI1_CONTROL: io.din[0]   = endpi1.full;
-	    ENDPO0_CONTROL: io.din[0]   = endpo0.empty;
-	    ENDPO0_DATA   : io.din[7:0] = endpo0.q;
-	    USB_ADDRESS   : io.din[6:0] = device_addr;
-
-	    USB_TOKEN:
-	      begin
-		 case (token.pid)
-		   OUT  : io.din[5:4] = 2'b01;
-		   IN   : io.din[5:4] = 2'b10;
-		   SETUP: io.din[5:4] = 2'b11;
-		 endcase
-
-		 io.din[3:0] = token.endp;
-	      end
-
-	    USB_STATUS: 
-	      begin
-		 io.din[6] = usb_status.bto;
-		 io.din[5] = usb_status.crc16;
-		 io.din[4] = usb_status.crc5;
-		 io.din[3] = usb_status.pid;
-		 io.din[2] = usb_status.usb_reset;
-		 io.din[1] = usb_status.stall;
-		 io.din[0] = usb_status.token_done;
-	      end
-	  endcase
      end
+
+   always_ff @(posedge wb.clk)
+     if (wb.rst)
+       wb_dat_o <= 16'h0;
+     else
+       if (io_ren)
+         begin
+            wb_dat_o <= 16'h0;
+
+            case (io_adr)
+	      ENDPI0_CONTROL: wb_dat_o[0]   <= endpi0.wrfull;
+	      ENDPI1_CONTROL: wb_dat_o[0]   <= endpi1.wrfull;
+	      ENDPO0_CONTROL: wb_dat_o[0]   <= endpo0.rdempty;
+	      ENDPO0_DATA   : wb_dat_o[7:0] <= endpo0.q;
+	      USB_ADDRESS   : wb_dat_o[6:0] <= device_addr;
+
+	      USB_TOKEN:
+	        begin
+	           case (token.pid)
+		     OUT  : wb_dat_o[5:4] <= 2'b01;
+		     IN   : wb_dat_o[5:4] <= 2'b10;
+		     SETUP: wb_dat_o[5:4] <= 2'b11;
+	           endcase
+
+	           wb_dat_o[3:0] <= token.endp;
+	        end
+
+	      USB_STATUS: 
+	        begin
+	           wb_dat_o[6] <= usb_status.bto;
+	           wb_dat_o[5] <= usb_status.crc16;
+	           wb_dat_o[4] <= usb_status.crc5;
+	           wb_dat_o[3] <= usb_status.pid;
+	           wb_dat_o[2] <= usb_status.usb_reset;
+	           wb_dat_o[1] <= usb_status.stall;
+	           wb_dat_o[0] <= usb_status.token_done;
+	        end
+            endcase
+         end
 
    always_comb
      begin
-	endpi0.data  = io.dout;
-	endpi0.sclr  = transceiver.usb_reset;
+	endpi0.data  = wb_dat_i;
 	endpi0.rdreq = 1'b0;
 	endpi0.wrreq = 1'b0;
 
-	endpi1.data  = io.dout;
-	endpi1.sclr  = transceiver.usb_reset;
+	endpi1.data  = wb_dat_i;
 	endpi1.wrreq = 1'b0;
 	endpi1.rdreq = 1'b0;
 
 	endpo0.data  = transceiver.rx_data;
-	endpo0.sclr  = transceiver.usb_reset;
 	endpo0.wrreq = 1'b0;
 
 	case (token.endp)
@@ -413,8 +439,8 @@ module usb_sie
 	    endpi1.rdreq = endp_rdreq;
 	endcase
 
-	if (io.wr)
-	  case (io.addr)
+	if (io_wen)
+	  case (io_adr)
 	    ENDPI0_DATA: endpi0.wrreq = 1'b1;
 	    ENDPI1_DATA: endpi1.wrreq = 1'b1;
 	  endcase
@@ -428,10 +454,10 @@ module usb_sie
        end
      else
        begin
-	  if (io.wr && (io.addr == ENDPI0_CONTROL))
+	  if (io_wen && io_adr == ENDPI0_CONTROL)
 	    begin
-	       endpi0_stall <= io.dout[2];
-	       endpi0_ack   <= io.dout[1];
+	       endpi0_stall <= wb_dat_i[2];
+	       endpi0_ack   <= wb_dat_i[1];
 	    end
 
 	  if (token.endp == 4'd0)
@@ -452,10 +478,10 @@ module usb_sie
        end
      else
        begin
-	  if (io.wr && (io.addr == ENDPI1_CONTROL))
+	  if (io_wen && io_adr == ENDPI1_CONTROL)
 	    begin
-	       endpi1_stall <= io.dout[2];
-	       endpi1_ack   <= io.dout[1];
+	       endpi1_stall <= wb_dat_i[2];
+	       endpi1_ack   <= wb_dat_i[1];
 	    end
 
 	  if (token.endp == 4'd1)
@@ -471,12 +497,12 @@ module usb_sie
    /************************************************************************
     * USB_ADDRESS register
     ************************************************************************/
-   always_ff @(posedge transceiver.clk)
-     if (transceiver.usb_reset)
+   always_ff @(posedge wb.clk)
+     if (wb.rst)
        device_addr <= 7'h0;
      else
-       if (io.wr && (io.addr == USB_ADDRESS))
-	 device_addr <= io.dout[6:0];
+       if (io_wen && io_adr == USB_ADDRESS)
+	 device_addr <= wb_dat_i[6:0];
 
    /************************************************************************
     * USB_STATUS register
@@ -494,11 +520,11 @@ module usb_sie
        end
      else
        begin
-	  if (io.wr && (io.addr == USB_STATUS))
+	  if (io_wen && io_adr == USB_STATUS)
 	    begin
 	       var usb_status_t clear;
 
-	       clear = usb_status_t'(io.dout[6:0]);
+	       clear = usb_status_t'(wb_dat_i[6:0]);
 
 	       if (clear.bto)        usb_status.bto        <= 1'b0;
 	       if (clear.crc16)      usb_status.crc16      <= 1'b0;
@@ -523,6 +549,24 @@ module usb_sie
        end
 
    /************************************************************************
+    * Wishbone control
+    * Classic pipelined bus cycles
+    ************************************************************************/
+
+   always_comb io_ren = valid & ~wb.we;
+   always_comb io_wen = valid &  wb.we;
+
+   always_comb valid = wb.cyc & wb.stb;
+
+   always_ff @(posedge wb.clk)
+     if (wb.rst)
+       wb.ack <= 1'b0;
+     else
+       wb.ack <= valid;
+
+   assign wb.stall = 1'b0;
+
+   /************************************************************************
     * Validy checks
     ************************************************************************/
 
@@ -536,7 +580,7 @@ module usb_sie
     * If all token bits are received without error the residual will
     * be 5'b01100.
     *
-    * Note, that the LSB is sent first hence the polynom and the
+    * Note, that the LSB is sent first hence the polynomial and the
     * residual are reversed.
     */
    function valid_crc5();
@@ -563,7 +607,7 @@ module usb_sie
     * If all token bits are received without error the residual will
     * be 16'b1000000000001101.
     *
-    * Note, that the LSB is sent first hence the polynom and the
+    * Note, that the LSB is sent first hence the polynomial and the
     * residual are reversed.
     */
    function [15:0] step_crc16(input [7:0] d);

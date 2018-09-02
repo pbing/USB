@@ -1,46 +1,49 @@
-/* USB Low Speed sender */
+/* USB Transmitter */
 
 module usb_tx
   import types::*;
    (input  wire        reset,  // reset
-    input  wire        clk,    // system clock (slow speed: 6 MHz, full speed: 48 MHz)
+    input  wire        clk,    // clock
     output d_port_t    d_o,    // USB port D+, D- (output)
     output logic       d_en,   // USB port D+, D- (enable)
     input  wire  [7:0] data,   // data from SIE
     input  wire        valid,  // rise:SYNC,1:send data,fall:EOP
     output logic       ready); // data has been sent
 
+   parameter clk_mult = 4; // clock multiplier
+
    /* bit/byte enable */
-   logic [1:0] clk_counter;  // 4x oversampling
-   logic [2:0] bit_counter;  // 8 bits per byte
-   logic       stuffing;     // bit stuffing
-   logic [2:0] num_ones;     // number of ones
-   logic       en_bit;       // enable bit
-   logic       sent;         // data sent
+   logic [$clog2(clk_mult -1 ):0] clk_counter; // 4x oversampling
+   logic [2:0]                    bit_counter; // 8 bits per byte
+   logic                          stuffing;    // bit stuffing
+   logic [2:0]                    num_ones;    // number of ones
+   logic                          en_bit;      // enable bit
+   logic                          sent;        // data sent
 
    enum int unsigned {RESET, TX_WAIT, SEND_SYNC, TX_DATA_LOAD, TX_DATA_WAIT, SEND_EOP} tx_state, tx_next;
 
    always_ff @(posedge clk)
      if (reset)
        begin
-	  clk_counter <= 2'd0;
+	  clk_counter <= 0;
 	  bit_counter <= 3'd0;
        end
      else
-       begin
-	  if (tx_state == RESET || (!valid && tx_state == TX_WAIT))
-	    begin
-	       clk_counter <= 2'd0;
-	       bit_counter <= 3'd0;
-	    end
-	  else
-	    begin
-	       clk_counter <= clk_counter + 2'd1;
-
-	       if (clk_counter == 2'd3 && !stuffing)
-		 bit_counter <= bit_counter + 3'd1;
-	    end
-       end
+       if (tx_state == RESET || (!valid && tx_state == TX_WAIT))
+	 begin
+	    clk_counter <= 0;
+	    bit_counter <= 3'd0;
+	 end
+       else
+         if (clk_counter != clk_mult - 1)
+	   clk_counter <= clk_counter + 1;
+         else
+           begin
+	      clk_counter <= 0;
+              
+	      if (!stuffing)
+	        bit_counter <= bit_counter + 3'd1;
+           end
 
    /* TX FSM */
    always_ff @(posedge clk)
@@ -81,7 +84,7 @@ module usb_tx
 
    always_comb
      begin
-        en_bit = (tx_state != RESET && tx_state != TX_WAIT && clk_counter == 2'd0);
+        en_bit = (tx_state != RESET && tx_state != TX_WAIT && clk_counter == 0);
 	sent   = (en_bit && bit_counter == 3'd7);
 	ready  = (sent && !stuffing);
 	d_en   = (tx_state != RESET && tx_state != TX_WAIT);
@@ -101,12 +104,12 @@ module usb_tx
        tx_shift <= 8'b0;
      else
        if (valid && tx_state == TX_WAIT)
-	 tx_shift <= 8'b10000000;             // SYNC pattern
+	 tx_shift <= 8'b10000000;              // SYNC pattern
        else if (en_bit && !stuffing)
 	 if (tx_state == TX_DATA_LOAD)
-	   tx_shift <= tx_load;               // load
+	   tx_shift <= tx_load;                // load
 	 else
-	   tx_shift <= {1'bx, tx_shift[7-:7]}; // shift
+	   tx_shift <= {1'b0, tx_shift[7-:7]}; // shift
 
    /* bit stuffing */
    logic tx_serial;
@@ -147,7 +150,7 @@ module usb_tx
      if (tx_state == SEND_EOP)
        /* two bit SE0, one bit J */
        begin
-	  if ((bit_counter == 3'd1) || (bit_counter == 3'd2) || ((bit_counter == 3'd3) && (clk_counter == 2'd0)))
+	  if ((bit_counter == 3'd1) || (bit_counter == 3'd2) || ((bit_counter == 3'd3) && (clk_counter == 0)))
 	    d_o = SE0;
 	  else
 	    d_o = J;

@@ -1,9 +1,2 @@
 syn/
-sim/*
-!sim/*.sv
-rtl/MegaWizard/*
-rtl/MegaWizard/*_bb.v
-!rtl/MegaWizard/*.v
-firmware/*.mif
-firmware/*.lst
 
