@@ -1,5 +1,7 @@
 /* USB Transmitter */
 
+`default_nettype none
+
 module usb_tx
   import types::*;
    (input  wire        reset,  // reset
@@ -163,3 +165,5 @@ module usb_tx
 	    d_o = J;
        end
 endmodule
+
+`resetall

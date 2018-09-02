@@ -1,5 +1,7 @@
 /* Evaluation Bord I/O */
 
+`default_nettype none
+
 module board_io
   (input  wire             reset, // reset
    input  wire  [3:0]      key,   // push buttons
@@ -72,3 +74,5 @@ module board_io
 
    assign wb.stall = 1'b0;
 endmodule
+
+ `resetall

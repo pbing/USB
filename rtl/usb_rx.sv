@@ -1,5 +1,7 @@
 /* USB receiver */
 
+`default_nettype none
+
 module usb_rx
   import types::*;
    (input  wire        reset,  // system reset
@@ -190,3 +192,5 @@ module usb_rx
      else
        valid <= rcv_data & clk_en;
 endmodule
+
+`resetall

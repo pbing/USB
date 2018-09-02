@@ -1,5 +1,8 @@
 /* USB averaging filter */
 
+// Quartus doesn't like 'input wire d_port_t d'
+//`default_nettype none
+
 module usb_filter
   import types::*;
    (input  wire     clk,  // USB clock
@@ -30,3 +33,5 @@ module usb_filter
         se0    = ~dp_cmp & ~dn_cmp;
      end
 endmodule
+
+//`resetall

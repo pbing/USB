@@ -1,5 +1,7 @@
 /* Interfaces */
 
+`default_nettype none
+
 interface if_transceiver
   (input wire   clk);      // USB clock
    /* control */
@@ -48,3 +50,5 @@ interface if_fifo
    logic       rdempty; // FIFO empty
    logic       wrfull;  // FIFO full
 endinterface:if_fifo
+
+`default_nettype none

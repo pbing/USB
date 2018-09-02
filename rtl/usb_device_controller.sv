@@ -1,5 +1,8 @@
 /* USB device controller */
 
+// Quartus doesn't like 'input  wire d_port_t d_i'
+//`default_nettype none
+
 module usb_device_controller
   import types::*;
    (input  wire     reset,          // reset
@@ -25,3 +28,5 @@ module usb_device_controller
      (.transceiver,
       .wb);
 endmodule
+
+//`resetall

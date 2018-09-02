@@ -1,5 +1,8 @@
 /* USB Transceiver */
 
+// Quartus doesn't like 'input wire d_port_t d_i'
+//`default_nettype none
+
 module usb_transceiver
   import types::*;
    (input  wire        reset,          // reset
@@ -18,10 +21,11 @@ module usb_transceiver
    logic    rx_reset;   // RX reset
 
    usb_reset ubs_reset
-     (.reset_i (reset),
-      .clk     (transceiver.clk),
-      .se0     (se0),
-      .reset_o (transceiver.usb_reset));
+     (.reset_i        (reset),
+      .clk            (transceiver.clk),
+      .se0            (se0),
+      .usb_full_speed (usb_full_speed),
+      .reset_o        (transceiver.usb_reset));
 
    usb_filter usb_filter
      (.clk (transceiver.clk),
@@ -61,3 +65,5 @@ module usb_transceiver
 
    always_comb rx_reset = transceiver.usb_reset | d_en;
 endmodule
+
+//`resetall

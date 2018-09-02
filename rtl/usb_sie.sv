@@ -1,5 +1,7 @@
 /* USB Serial Interface Engine */
 
+`default_nettype none
+
 module usb_sie
   (if_transceiver.sie transceiver, // USB tranceiver interface
    if_wb.slave        wb);         // J1 I/O
@@ -628,3 +630,5 @@ module usb_sie
       valid_crc16 = (crc16_res == crc16);
    endfunction
 endmodule
+
+`resetall
