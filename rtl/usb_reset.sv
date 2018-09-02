@@ -2,6 +2,8 @@
  * USB-2.0 specification, Table 7-14: TDETRST = 2.5 µs ... 10000 µs
  */
 
+`default_nettype none
+
 module usb_reset
   (input  wire  reset_i,        // system reset input
    input  wire  clk,            // system clock (slow speed: 6 MHz, full speed: 48 MHz)
@@ -25,7 +27,9 @@ module usb_reset
 
    always_comb
      if (usb_full_speed)
-       reset_o = counter == 13'h0001;
+       reset_o = reset_i || counter == 13'h0001;
      else
-       reset_o = counter == 13'h0008;
+       reset_o = reset_i || counter == 13'h0008;
 endmodule
+
+`resetall
