@@ -43,12 +43,13 @@ package types;
    } token_t;
 
    typedef struct {
-      logic bto;        // bus turnaround time-out
-      logic crc16;      // CRC16 error
-      logic crc5;       // CRC5 error
-      logic pid;        // PID error
-      logic usb_reset;  // USB reset
-      logic stall;      // a STALL handshake was sent by the SIE
-      logic token_done; // token process complete
+      logic [8:0] reserved;
+      logic       bto;        // bus turnaround time-out
+      logic       crc16;      // CRC16 error
+      logic       crc5;       // CRC5 error
+      logic       pid;        // PID error
+      logic       usb_reset;  // USB reset
+      logic       stall;      // a STALL handshake was sent by the SIE
+      logic       token_done; // token process complete
    } usb_status_t;
 endpackage

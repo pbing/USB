@@ -526,7 +526,7 @@ module usb_sie
 	    begin
 	       var usb_status_t clear;
 
-	       clear = usb_status_t'(wb_dat_i[6:0]);
+	       clear = usb_status_t'(wb_dat_i);
 
 	       if (clear.bto)        usb_status.bto        <= 1'b0;
 	       if (clear.crc16)      usb_status.crc16      <= 1'b0;
@@ -555,10 +555,9 @@ module usb_sie
     * Classic pipelined bus cycles
     ************************************************************************/
 
+   always_comb valid  = wb.cyc & wb.stb;
    always_comb io_ren = valid & ~wb.we;
    always_comb io_wen = valid &  wb.we;
-
-   always_comb valid = wb.cyc & wb.stb;
 
    always_ff @(posedge wb.clk)
      if (wb.rst)
