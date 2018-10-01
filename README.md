@@ -1,4 +1,4 @@
-# FPGA USB 1.1, Slow-Speed Implementation
+# FPGA USB 1.1, Low-Speed Implementation
 
 Derived from an example [application](https://github.com/pbing/USB/tree/master/doc/Microchip) which emulates a mouse.
 The cursor will move in a continual octagon.
