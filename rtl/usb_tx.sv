@@ -20,7 +20,6 @@ module usb_tx
    logic                          stuffing;    // bit stuffing
    logic [2:0]                    num_ones;    // number of ones
    logic                          en_bit;      // enable bit
-   logic                          sent;        // data sent
 
    enum int unsigned {RESET, TX_WAIT, SEND_SYNC, TX_DATA_LOAD, TX_DATA_WAIT, SEND_EOP} tx_state, tx_next;
 
@@ -66,7 +65,7 @@ module usb_tx
 	    if (valid) tx_next = SEND_SYNC;
 
 	  SEND_SYNC:
-	    if (sent) tx_next = TX_DATA_LOAD;
+	    if (ready) tx_next = TX_DATA_LOAD;
 
 	  TX_DATA_LOAD:
 	    begin
@@ -87,8 +86,7 @@ module usb_tx
    always_comb
      begin
         en_bit = (tx_state != RESET && tx_state != TX_WAIT && clk_counter == 0);
-	sent   = (en_bit && bit_counter == 3'd7);
-	ready  = (sent && !stuffing);
+	ready  = (en_bit && bit_counter == 3'd7 && !stuffing);
 	d_en   = (tx_state != RESET && tx_state != TX_WAIT);
      end
 
@@ -98,7 +96,7 @@ module usb_tx
    always_ff @(posedge clk)
      if (reset)
        tx_load <= 8'b0;
-     else if (sent)
+     else if (ready)
        tx_load <= data;
 
    always_ff @(posedge clk)
