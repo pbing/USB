@@ -27,7 +27,7 @@ module tb_usb_tx;
 
    always @(posedge clk)
      if (ready)
-       data = $random;
+       data <= $random;
 
    initial
      begin:main
@@ -44,6 +44,6 @@ module tb_usb_tx;
      end:main
 
    task pid(pid_t x);
-      data <= {x, ~x};
+      data <= {~x, x};
    endtask
 endmodule

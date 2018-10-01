@@ -221,7 +221,6 @@ module top_c5gx
       .d_o  (usb_d_o),
       .d_en (usb_d_en),
       .wb   (wbs4));
-
 endmodule
 
 `resetall

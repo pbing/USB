@@ -146,23 +146,32 @@ module tb_top;
    wire         rx_valid;   // data valid pulse
    wire         rx_error;   // error detected
 
-   const byte GET_DESCRIPTOR[]          = '{8'h80, 8'h06, 8'h00, 8'h01, 8'h00, 8'h00, 8'h12, 8'h00};
+   const byte GET_DEVICE_DESCRIPTOR[]        = '{8'h80, 8'h06, 8'h00, 8'h01, 8'h00, 8'h00, 8'h12, 8'h00};
+   const byte GET_CONFIGURATION_DESCRIPTOR[] = '{8'h80, 8'h06, 8'h00, 8'h02, 8'h00, 8'h00, 8'h22, 8'h00};
+   const byte GET_HID_REPORT_DESCRIPTOR[]    = '{8'h81, 8'h06, 8'h00, 8'h22, 8'h00, 8'h00, 8'h72, 8'h00};
 
-   const byte SHORT_DEVICE_DESCRIPTOR[] = '{8'd18, 8'h01, 8'h10, 8'h01, 8'h00, 8'h00, 8'h00, 8'h08};
+   const byte DEVICE_DESCRIPTOR[]            = '{8'd18, 8'h01, 8'h10, 8'h01, 8'h00, 8'h00, 8'h00, 8'h08,
+					         8'hd8, 8'h04, 8'h01, 8'h00, 8'h00, 8'h02, 8'h01, 8'h02,
+					         8'h00, 8'h01};
 
-   const byte DEVICE_DESCRIPTOR[]       = '{8'd18, 8'h01, 8'h10, 8'h01, 8'h00, 8'h00, 8'h00, 8'h08,
-					    8'hd8, 8'h04, 8'h01, 8'h00, 8'h00, 8'h02, 8'h01, 8'h02,
-					    8'h00, 8'h01};
+   const byte CONFIGURATION_DESCRIPTOR[]     = '{8'd09, 8'h02, 8'h22, 8'h00, 8'h01, 8'h01, 8'h00, 8'ha0, 8'd50,
+                                                 8'd09, 8'h04, 8'h00, 8'h00, 8'h01, 8'h03, 8'h01, 8'h02, 8'h00,
+                                                 8'd09, 8'h21, 8'h00, 8'h01, 8'h00, 8'h01, 8'h22, 8'h32, 8'h00,
+                                                 8'd07, 8'h05, 8'h81, 8'h03, 8'h04, 8'h00, 8'd10};
 
-   const byte SET_ADDRESS[]             = '{8'h00, 8'h05, 8'hx, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00};
+   const byte HID_REPORT_DESCRIPTOR[]        = '{8'h05, 8'h01, 8'h09, 8'h02, 8'ha1, 8'h01, 8'h09, 8'h01, 8'ha1, 8'h00,
+                                                 8'h05, 8'h09, 8'h19, 8'h01, 8'h29, 8'h03, 8'h15, 8'h00, 8'h25, 8'h01,
+                                                 8'h95, 8'h03, 8'h75, 8'h01, 8'h81, 8'h02, 8'h95, 8'h01, 8'h75, 8'h05,
+                                                 8'h81, 8'h01, 8'h05, 8'h01, 8'h09, 8'h30, 8'h09, 8'h31, 8'h15, 8'h81,
+                                                 8'h25, 8'h7f, 8'h75, 8'h08, 8'h95, 8'h03, 8'h81, 8'h06, 8'hc0, 8'hc0};
 
-   const byte SET_CONFIGURATION[]       = '{8'h00, 8'h09, 8'h01, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00};
+   const byte SET_ADDRESS[]                  = '{8'h00, 8'h05, 8'h06, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00};
 
-   byte get_descriptor[] = GET_DESCRIPTOR;
-   byte set_address[]    = SET_ADDRESS;
+   const byte SET_CONFIGURATION[]            = '{8'h00, 8'h09, 8'h01, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00};
+
    byte addr;
 
-   int rpt  = $fopen("end_points.rpt"); // report file ID
+   int rpt  = $fopen("fifo.rpt"); // report file ID
 
    top_c5gx dut(.*);
 
@@ -227,12 +236,10 @@ module tb_top;
    /* observe endpoints */
    always @(posedge usb_clk)
      begin:monitor_endp
-	if (dut.usb_device_controller.usb_sie.endpi0.wrreq) $fdisplay(rpt, "%t endpi0(device.w): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpi0.data);
-	if (dut.usb_device_controller.usb_sie.endpi0.rdreq) $fstrobe (rpt, "%t endpi0(  host.r): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpi0.q);
-	if (dut.usb_device_controller.usb_sie.endpi1.wrreq) $fdisplay(rpt, "%t endpi1(device.w): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpi1.data);
-	if (dut.usb_device_controller.usb_sie.endpi1.rdreq) $fstrobe (rpt, "%t endpi1(  host.r): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpi1.q);
-	if (dut.usb_device_controller.usb_sie.endpo0.wrreq) $fdisplay(rpt, "%t endpo0(  host.w): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpo0.data);
-	if (dut.usb_device_controller.usb_sie.endpo0.rdreq) $fstrobe (rpt, "%t endpo0(device.r): 0x%h", $realtime, dut.usb_device_controller.usb_sie.endpo0.q);
+	if (dut.usb_device_controller.usb_sie.txbuf.wrreq) $fdisplay(rpt, "%t txbuf(device.w): 'h%h", $realtime, dut.usb_device_controller.usb_sie.txbuf.data);
+	if (dut.usb_device_controller.usb_sie.txbuf.rdreq) $fstrobe (rpt, "%t txbuf(  host.r): 'h%h", $realtime, dut.usb_device_controller.usb_sie.txbuf.q);
+	if (dut.usb_device_controller.usb_sie.rxbuf.wrreq) $fdisplay(rpt, "%t rxbuf(  host.w): 'h%h", $realtime, dut.usb_device_controller.usb_sie.rxbuf.data);
+	if (dut.usb_device_controller.usb_sie.rxbuf.rdreq) $fstrobe (rpt, "%t rxbuf(device.r): 'h%h", $realtime, dut.usb_device_controller.usb_sie.rxbuf.q);
      end:monitor_endp
 
    initial
@@ -245,32 +252,138 @@ module tb_top;
 	CPU_RESET_n = 1'b0;
         #100ns CPU_RESET_n = 1'b1;
 
-	#30us;
-	get_descriptor[6] = 8'd08;
-	get_descriptor[7] = 8'd00;
-	$display("GET_DESCRIPTOR (short)");
-	control_read_transfer(get_descriptor, SHORT_DEVICE_DESCRIPTOR, 0, 0);
+//	#100us;
+//	$display("SET_ADDRESS('h%h)", SET_ADDRESS[2]);
+//        // SETUP stage
+//        send_token(SETUP, 0, 0);
+//        send_data(DATA0, SET_ADDRESS);
+//        receive_pid(ACK);
+//        // STATUS stage
+//        send_token(IN, 0, 0);
+//        receive_data(DATA1);
+//        send_pid(ACK);
 
-        /* -----\/----- EXCLUDED -----\/-----
-         #30us;
-	 addr = {$random % 8'h80};
-	 addr = 8'h05;
-	 set_address[2] = addr;
-	 $display("SET_ADDRESS('h%h)", addr);
-	 control_write_transfer(set_address, '{}, 0, 0);
-         -----/\----- EXCLUDED -----/\----- */
+//        #100us;
+//	$display("GET_DEVICE_DESCRIPTOR");
+//        // SETUP stage
+//        send_token(SETUP, 6, 0);
+//        send_data(DATA0, GET_DEVICE_DESCRIPTOR);
+//        receive_pid(ACK);
+//        // DATA stage
+//        #10us;
+//        send_token(IN, 6, 0);
+//        receive_data(DATA1, DEVICE_DESCRIPTOR[0:7]); // 8 bytes
+//        send_pid(ACK);
+//        #10us;
+//        send_token(IN, 6, 0);
+//        receive_data(DATA0, DEVICE_DESCRIPTOR[8:15]); // 8 bytes
+//        send_pid(ACK);
+//        #10us;
+//        send_token(IN, 6, 0);
+//        receive_data(DATA1, DEVICE_DESCRIPTOR[16:17]); // 2 bytes
+//        send_pid(ACK);
+//        // STATUS stage
+//        #10us;
+//        send_token(OUT, 6, 0);
+//        send_data(DATA1); // ZLP
+//        receive_pid(ACK);
 
-        /* -----\/----- EXCLUDED -----\/-----
-         #30us;
-	 $display("GET_DESCRIPTOR (full)");
-	 control_read_transfer(GET_DESCRIPTOR, DEVICE_DESCRIPTOR, addr, 0);
-         -----/\----- EXCLUDED -----/\----- */
+//        #100us;
+//	$display("GET_CONFIGURATION_DESCRIPTOR");
+//        // SETUP stage
+//        send_token(SETUP, 6, 0);
+//        send_data(DATA0, GET_CONFIGURATION_DESCRIPTOR);
+//        receive_pid(ACK);
+//        // DATA stage
+//        #10us;
+//        send_token(IN, 6, 0);
+//        receive_data(DATA1, CONFIGURATION_DESCRIPTOR[0:7]); // 8 bytes
+//        send_pid(ACK);
+//        #10us;
+//        send_token(IN, 6, 0);
+//        receive_data(DATA0, CONFIGURATION_DESCRIPTOR[8:15]); // 8 bytes
+//        send_pid(ACK);
+//        #10us;
+//        send_token(IN, 6, 0);
+//        receive_data(DATA1, CONFIGURATION_DESCRIPTOR[16:23]); // 8 bytes
+//        send_pid(ACK);
+//        #10us;
+//        send_token(IN, 6, 0);
+//        receive_data(DATA0, CONFIGURATION_DESCRIPTOR[24:31]); // 8 bytes
+//        send_pid(ACK);
+//        #10us;
+//        send_token(IN, 6, 0);
+//        receive_data(DATA1, CONFIGURATION_DESCRIPTOR[32:33]); // 2 bytes
+//        send_pid(ACK);
+//        // STATUS stage
+//        #10us;
+//        send_token(OUT, 6, 0);
+//        send_data(DATA1); // ZLP
+//        receive_pid(ACK);
 
-        /* -----\/----- EXCLUDED -----\/-----
-         #30us;
-  	 $display("SET_CONFIGURATION");
-	 control_write_transfer(SET_CONFIGURATION, '{}, addr, 0);
-         -----/\----- EXCLUDED -----/\----- */
+//        #100us;
+//	$display("GET_HID_REPORT_DESCRIPTOR");
+//        // SETUP stage
+//        send_token(SETUP, 6, 0);
+//        send_data(DATA0, GET_HID_REPORT_DESCRIPTOR);
+//        receive_pid(ACK);
+//        // DATA stage
+//        #10us;
+//        send_token(IN, 6, 0);
+//        receive_data(DATA1, HID_REPORT_DESCRIPTOR[0:7]); // 8 bytes
+//        send_pid(ACK);
+//        #10us;
+//        send_token(IN, 6, 0);
+//        receive_data(DATA0, HID_REPORT_DESCRIPTOR[8:15]); // 8 bytes
+//        send_pid(ACK);
+//        #10us;
+//        send_token(IN, 6, 0);
+//        receive_data(DATA1, HID_REPORT_DESCRIPTOR[16:23]); // 8 bytes
+//        send_pid(ACK);
+//        #10us;
+//        send_token(IN, 6, 0);
+//        receive_data(DATA0, HID_REPORT_DESCRIPTOR[24:31]); // 8 bytes
+//        send_pid(ACK);
+//        #10us;
+//        send_token(IN, 6, 0);
+//        receive_data(DATA1, HID_REPORT_DESCRIPTOR[32:39]); // 8 bytes
+//        send_pid(ACK);
+//        #10us;
+//        send_token(IN, 6, 0);
+//        receive_data(DATA0, HID_REPORT_DESCRIPTOR[40:47]); // 8 bytes
+//        send_pid(ACK);
+//        #10us;
+//        send_token(IN, 6, 0);
+//        receive_data(DATA1, HID_REPORT_DESCRIPTOR[48:49]); // 2 bytes
+//        send_pid(ACK);
+//        // STATUS stage
+//        #10us;
+//        send_token(OUT, 6, 0);
+//        send_data(DATA1); // ZLP
+//        receive_pid(ACK);
+
+	#100us;
+	$display("SET_CONFIGURATION('h%h)", SET_CONFIGURATION[2]);
+        // SETUP stage
+        send_token(SETUP, 0, 0);
+        send_data(DATA0, SET_CONFIGURATION);
+        receive_pid(ACK);
+        // STATUS stage
+        send_token(IN, 0, 0);
+        receive_data(DATA1);
+        send_pid(ACK);
+
+        #100us;
+	$display("Read HID report");
+        send_token(IN, 6, 1);
+        receive_data(DATA0, '{8'h00, 8'h00, 8'h00, 8'h00}); // 8 bytes
+        send_pid(ACK);
+
+        #100us;
+	$display("Read HID report");
+        send_token(IN, 6, 1);
+        receive_data(DATA1, '{8'h00, 8'h00, 8'h00, 8'h00}); // 8 bytes
+        send_pid(ACK);
 
 	#100us $stop;
      end:main
@@ -363,6 +476,8 @@ module tb_top;
    endtask
 
    task send_data(input pid_t pid, input byte data[] = '{});
+      logic [15:0] crc;
+
       /* PID */
       @(posedge usb_clk);
       $display("%t %M(pid=%p)", $realtime, pid);
@@ -373,17 +488,17 @@ module tb_top;
       foreach (data[i])
 	begin
 	   tx_data = data[i];
-	   $display("%t %M(%h)", $realtime, tx_data);
+	   $display("%t %M('h%h)", $realtime, tx_data);
 	   do @(posedge usb_clk); while (!tx_ready);
 	end
 
       /* CRC16 */
-      for (int i = 0; i < 16; i += 8)
-	begin
-	   tx_data = crc16(data)[7+i-:8];
-	   $display("%t %M(%h) CRC", $realtime, tx_data);
-	   do @(posedge usb_clk); while (!tx_ready);
-	end
+      crc = crc16(data);
+      $display("%t %M('h%h) CRC", $realtime, crc);
+      tx_data = crc[7:0];
+      do @(posedge usb_clk); while (!tx_ready);
+      tx_data = crc[15:8];
+      do @(posedge usb_clk); while (!tx_ready);
 
       /* wait for last byte */
       do @(posedge usb_clk); while (!tx_ready);
@@ -394,22 +509,29 @@ module tb_top;
    endtask
 
    task receive_data(input pid_t expected_pid, input byte expected_data[] = '{});
+      logic [15:0] crc, expected_crc;
+
       receive_pid (expected_pid);
 
       foreach (expected_data[i])
 	begin
 	   do @(posedge usb_clk); while (!rx_valid);
-	   $display("%t %M(%h)", $realtime, rx_data);
+	   $display("%t %M('h%h)", $realtime, rx_data);
 
 	   assert (rx_data == expected_data[i])
-	     else $error("expected = %h, received = %h", expected_data[i], rx_data);
+	     else $error("expected = 'h%h, received = 'h%h", expected_data[i], rx_data);
 	end
 
-      /* CRC */
-      repeat (2)
-	begin
-	   do @(posedge usb_clk); while (!rx_valid);
-	end
+      /* CRC16 */
+      do @(posedge usb_clk); while (!rx_valid);
+      crc[7:0] = rx_data;
+      do @(posedge usb_clk); while (!rx_valid);
+      crc[15:8] = rx_data;
+      $display("%t %M('h%h) CRC", $realtime, crc);
+      expected_crc = crc16(expected_data);
+
+      assert (crc == expected_crc)
+	else $error("expected = 'h%h, received = 'h%h", expected_crc, crc);
    endtask
 
    task receive_pid(input pid_t expected_pid);

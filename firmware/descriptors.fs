@@ -30,36 +30,37 @@ create report-descriptor1
     $81 c, $06 c, \ input (relative+variable, 2 position bytes X & Y)
     $c0 c, $c0 c, \ end collection (physical), end collection (application)
 
-50 constant size-report-descriptor1
+#50 constant size-report-descriptor1
 
 
 create device-descriptor
-    18      c, \ bLength
+    #18     c, \ bLength
     %device c, \ bDescriptorType
-    $0110    , \ bcdUSB
+    $0110   h, \ bcdUSB
     $00     c, \ bDeviceClass
     $00     c, \ bDeviceSubClass
     $00     c, \ bDeviceProtocol
     $08     c, \ bMaxPacketSize0
-    $04d8    , \ idVendor
-    $0001    , \ idProduct
-    $0200    , \ bcdDevice
+    $04d8   h, \ idVendor
+    $0001   h, \ idProduct
+    $0200   h, \ bcdDevice
     $01     c, \ iManufacturer
     $02     c, \ iProduct
     $00     c, \ iSerialNumber
     $01     c, \ bNumConfigurations
 
+
 create configuration-descriptor
-    9              c, \ bLength
+    #9             c, \ bLength
     %configuration c, \ bDescriptorType
-    34              , \ wTotalLength (9+9+9+7)
+    34             h, \ wTotalLength (9+9+9+7)
     $01            c, \ bNumInterfaces
     $01            c, \ bConfigurationValue
     $00            c, \ iConfiguration
     $A0            c, \ bmAttributes
     50             c, \ bMaxPower
 \ interface-descriptor
-    9              c, \ bLength
+    #9             c, \ bLength
     %interface     c, \ bDescriptorType
     $00            c, \ bInterfaceNumber
     $00            c, \ bAlternateSetting
@@ -70,105 +71,108 @@ create configuration-descriptor
     $00            c, \ iInterface
 \ hid-descriptor
 meta there target constant hid-descriptor
-    9              c, \ bLength
+    #9             c, \ bLength
     %hid           c, \ bDescriptorType
-    $0100           , \ bcdHID
+    $0100          h, \ bcdHID
     $00            c, \ bCountryCode
     $01            c, \ bNumDescriptors
     %report        c, \ bDescriptorType
-    size-report-descriptor1  , \ wDescriptorLength
+    size-report-descriptor1 h, \ wDescriptorLength
 \ endpoint-descriptor1
-    7              c, \ bLength
+    #7             c, \ bLength
     %endpoint      c, \ bDescriptorType
     $81            c, \ bEndPointAddress (IN1)
     $03            c, \ bmAttributes (Interrupt)
-    4               , \ wMaxPacketSize
-    10             c, \ bInterval (10 ms)
+    #4             h, \ wMaxPacketSize
+    #10            c, \ bInterval (10 ms)
+
+#34 constant size-configuration-descriptor
+
 
 \ LANGID
 create string-descriptor0
-    4       c, \ bLength
+    #4      c, \ bLength
     %string c, \ bDescriptorType
-    $409     , \ wLANGID[0]
+    $409    h, \ wLANGID[0]
 
 \ iManufacturer
 create string-descriptor1
-    54      c, \ bLength
+    #54     c, \ bLength
     %string c, \ bDescriptorType
-    char M   , \ bString
-    char i   ,
-    char c   ,
-    char r   ,
-    char o   ,
-    char c   ,
-    char h   ,
-    char i   ,
-    char p   ,
-    bl       ,
-    char T   ,
-    char e   ,
-    char c   ,
-    char h   ,
-    char n   ,
-    char o   ,
-    char l   ,
-    char o   ,
-    char g   ,
-    char y   ,
-    char ,   ,
-    bl       ,
-    char I   ,
-    char n   ,
-    char c   ,
-    char .   ,
+    'M'     h, \ bString
+    'i'     h,
+    'c'     h,
+    'r'     h,
+    'o'     h,
+    'c'     h,
+    'h'     h,
+    'i'     h,
+    'p'     h,
+    bl      h,
+    'T'     h,
+    'e'     h,
+    'c'     h,
+    'h'     h,
+    'n'     h,
+    'o'     h,
+    'l'     h,
+    'o'     h,
+    'g'     h,
+    'y'     h,
+    ','     h,
+    bl      h,
+    'I'     h,
+    'n'     h,
+    'c'     h,
+    '.'     h,
 
 
 \ iProduct
 create string-descriptor2
-    92      c,
+    #92     c,
     %string c,
-    char P   ,
-    char i   ,
-    char c   ,
-    char 1   ,
-    char 6   ,
-    char C   ,
-    char 7   ,
-    char 4   ,
-    char 5   ,
-    char /   ,
-    char 7   ,
-    char 6   ,
-    char 5   ,
-    bl       ,
-    char U   ,
-    char S   ,
-    char B   ,
-    bl       ,
-    char S   ,
-    char u   ,
-    char p   ,
-    char p   ,
-    char o   ,
-    char r   ,
-    char t   ,
-    bl       ,
-    char F   ,
-    char i   ,
-    char r   ,
-    char m   ,
-    char w   ,
-    char a   ,
-    char r   ,
-    char e   ,
-    char ,   ,
-    bl       ,
-    char V   ,
-    char e   ,
-    char r   ,
-    char .   ,
-    bl       ,
-    char 2   ,
-    char .   ,
-    char 0   ,
-    char 0   ,
+    'P'     h,
+    'i'     h,
+    'c'     h,
+    '1'     h,
+    '6'     h,
+    'C'     h,
+    '7'     h,
+    '4'     h,
+    '5'     h,
+    '/'     h,
+    '7'     h,
+    '6'     h,
+    '5'     h,
+    bl      h,
+    'U'     h,
+    'S'     h,
+    'B'     h,
+    bl      h,
+    'S'     h,
+    'u'     h,
+    'p'     h,
+    'p'     h,
+    'o'     h,
+    'r'     h,
+    't'     h,
+    bl      h,
+    'F'     h,
+    'i'     h,
+    'r'     h,
+    'm'     h,
+    'w'     h,
+    'a'     h,
+    'r'     h,
+    'e'     h,
+    ','     h,
+    bl      h,
+    'V'     h,
+    'e'     h,
+    'r'     h,
+    '.'     h,
+    bl      h,
+    '2'     h,
+    '.'     h,
+    '0'     h,
+    '0'     h,

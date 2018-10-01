@@ -18,6 +18,7 @@ module board_io
    logic        io_wen;
    wire  [15:0] wb_dat_i;
    logic [15:0] wb_dat_o;
+   logic [11:0] io_adr;
 
 `ifdef NO_MODPORT_EXPRESSIONS
    assign wb_dat_i = wb.dat_m;
@@ -37,13 +38,13 @@ module board_io
 	  end
 	else
 	  if (io_wen)
-	    case (wb.adr[11:0])
-	      LEDG[12:1]: ledg   <=  wb_dat_i[7:0];
-	      LEDR[12:1]: ledr   <=  wb_dat_i[9:0];
-	      HEX0[12:1]: hex[0] <= ~wb_dat_i[6:0];
-	      HEX1[12:1]: hex[1] <= ~wb_dat_i[6:0];
-	      HEX2[12:1]: hex[2] <= ~wb_dat_i[6:0];
-	      HEX3[12:1]: hex[3] <= ~wb_dat_i[6:0];
+	    case (io_adr)
+	      LEDG: ledg   <=  wb_dat_i[7:0];
+	      LEDR: ledr   <=  wb_dat_i[9:0];
+	      HEX0: hex[0] <= ~wb_dat_i[6:0];
+	      HEX1: hex[1] <= ~wb_dat_i[6:0];
+	      HEX2: hex[2] <= ~wb_dat_i[6:0];
+	      HEX3: hex[3] <= ~wb_dat_i[6:0];
 	    endcase
      end
 
@@ -52,14 +53,15 @@ module board_io
 	wb_dat_o = 16'b0;
 
 	if (io_ren)
-	  case (wb.adr[11:0])
-	    KEY[12:1]: wb_dat_o[3:0] = key;
-	    SW [12:1]: wb_dat_o[9:0] = sw;
+	  case (io_adr)
+	    KEY: wb_dat_o[3:0] = key;
+	    SW : wb_dat_o[9:0] = sw;
 	  endcase
      end
 
    always_comb io_ren = valid & ~wb.we;
    always_comb io_wen = valid &  wb.we;
+   always_comb io_adr = wb.adr[10:0] << 1;
 
    /* Wishbone control
     * Classic pipelined bus cycles

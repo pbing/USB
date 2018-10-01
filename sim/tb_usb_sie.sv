@@ -17,21 +17,18 @@ module tb_usb_sie;
    bit clk;
    bit rst;
 
-   const byte GET_DESCRIPTOR[]          = '{8'h80, 8'h06, 8'h00, 8'h01, 8'h00, 8'h00, 8'h12, 8'h00};
-
-   const byte SHORT_DEVICE_DESCRIPTOR[] = '{8'd18, 8'h01, 8'h10, 8'h01, 8'h00, 8'h00, 8'h00, 8'h08};
-
    const byte DEVICE_DESCRIPTOR[]       = '{8'd18, 8'h01, 8'h10, 8'h01, 8'h00, 8'h00, 8'h00, 8'h08,
 					    8'hd8, 8'h04, 8'h01, 8'h00, 8'h00, 8'h02, 8'h01, 8'h02,
 					    8'h00, 8'h01};
 
-   const byte SET_ADDRESS[]             = '{8'h00, 8'h05, 8'hx, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00};
-
+   const byte GET_DESCRIPTOR[]          = '{8'h80, 8'h06, 8'h00, 8'h01, 8'h00, 8'h00, 8'h12, 8'h00};
+   const byte SET_ADDRESS[]             = '{8'h00, 8'h05, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00};
    const byte SET_CONFIGURATION[]       = '{8'h00, 8'h09, 8'h01, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00};
 
    byte get_descriptor[] = GET_DESCRIPTOR;
    byte set_address[]    = SET_ADDRESS;
    byte addr;
+   byte dat_i, dat_o;
 
    if_transceiver transceiver(.clk(usb_clk));
    if_wb          wb(.rst,.clk);
@@ -63,12 +60,15 @@ module tb_usb_sie;
         transceiver.usb_reset = 1'b0;
 
         #1us;
-	get_descriptor[6] = 8'd08;
-	get_descriptor[7] = 8'd00;
-	$display("GET_DESCRIPTOR (short)");
-	control_read_transfer(get_descriptor, SHORT_DEVICE_DESCRIPTOR, 0, 0);
+	$display("SET_ADDRESS");
+        send_token(SETUP, 0, 0);
+        repeat (1 + 2) wb_read(USB_RX_DATA, dat_i);
+        send_data(DATA0, SET_ADDRESS);
+        repeat (1 + 8 + 2) wb_read(USB_RX_DATA, dat_i);
+        wb_write(USB_TX_DATA, {~ACK, ACK});
+        receive_pid(ACK);
 
-        repeat (30) @(posedge usb_clk);
+        repeat (30) @(posedge clk);
         $finish;
      end:main
 
@@ -82,17 +82,17 @@ module tb_usb_sie;
       send_data(DATA0, command);
       receive_pid(ACK);
 
-      fork
-         /* reply from CPU */
-         #(1000 * tclk) endpi0_write(result);
-
-         /* Data Transaction */
-         //repeat (5)
-         //  begin
-         //     send_token(IN, addr, endp);
-         //     receive_pid(NAK, 1);
-         //  end
-      join
+//      fork
+//         /* reply from CPU */
+//         #(1000 * tclk) endpi0_write(result);
+//
+//         /* Data Transaction */
+//         //repeat (5)
+//         //  begin
+//         //     send_token(IN, addr, endp);
+//         //     receive_pid(NAK, 1);
+//         //  end
+//      join
 
       send_token(IN, addr, endp);
       receive_data(DATA1, result);
@@ -292,16 +292,16 @@ module tb_usb_sie;
       dat_i    <= wb.dat_s;
    endtask
 
-   task endpi0_write(input byte data[]);
-      byte control;
-
-      foreach (data[i])
-        begin
-           wb_read(ENDPI0_CONTROL, control);   // read FULL
-           wb_write(ENDPI0_DATA, data[i]);     // write to FIFO
-           wb_write(ENDPI0_CONTROL, 16'h0002); // set ACK
-        end
-   endtask
+//   task endpi0_write(input byte data[]);
+//      byte control;
+//
+//      foreach (data[i])
+//        begin
+//           wb_read(ENDPI0_CONTROL, control);   // read FULL
+//           wb_write(ENDPI0_DATA, data[i]);     // write to FIFO
+//           wb_write(ENDPI0_CONTROL, 16'h0002); // set ACK
+//        end
+//   endtask
 
    /**********************************************************************
     * Functions

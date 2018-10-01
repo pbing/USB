@@ -3,7 +3,7 @@
 FORTH = /usr/local/opt/SwiftForth/bin/osx/sf
 #FORTH = gforth -e
 
-VPATH = ../../J1_WB/j1_forth
+VPATH = ../J1_WB/j1_forth
 
 SRC = crossj1.fs \
       basewords.fs \

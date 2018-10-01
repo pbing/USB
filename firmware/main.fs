@@ -1,7 +1,7 @@
 \ Compile the firmware
 
-include ../../J1_WB/j1_forth/crossj1.fs
-include ../../J1_WB/j1_forth/basewords.fs
+include ../J1_WB/j1_forth/crossj1.fs
+include ../J1_WB/j1_forth/basewords.fs
 
 target
 

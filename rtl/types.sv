@@ -1,14 +1,14 @@
 /* Types */
 
 package types;
-   parameter bit USB_FULL_SPEED = 0; // 0:Low-Speed  1:Full-Speed
+   parameter USB_FULL_SPEED = 0; // 0:Low-Speed  1:Full-Speed
 
    /* d_port_t = {D+, D-}
     * Symbols J and K have inverse polarity in slow/full speed.
     */
    typedef enum logic [1:0] {SE0 = 2'd0,
-			     J   = 2'd1 + USB_FULL_SPEED,
-			     K   = 2'd2 - USB_FULL_SPEED,
+			     J   = 2'd1 + USB_FULL_SPEED[0],
+			     K   = 2'd2 - USB_FULL_SPEED[0],
 			     SE1 = 2'd3 } d_port_t;
 
    /* Packets */
@@ -42,14 +42,28 @@ package types;
       logic [4:0] crc5; // CRC5
    } token_t;
 
+/*
    typedef struct {
-      logic [8:0] reserved;
-      logic       bto;        // bus turnaround time-out
-      logic       crc16;      // CRC16 error
-      logic       crc5;       // CRC5 error
-      logic       pid;        // PID error
-      logic       usb_reset;  // USB reset
-      logic       stall;      // a STALL handshake was sent by the SIE
-      logic       token_done; // token process complete
+      logic [15:7] reserved;
+      logic        bto;        // bus turnaround time-out
+      logic        crc16;      // CRC16 error
+      logic        crc5;       // CRC5 error
+      logic        pid;        // PID error
+      logic        usb_reset;  // USB reset
+      logic        stall;      // a STALL handshake was sent by the SIE
+      logic        token_done; // token process complete
    } usb_status_t;
+
+   typedef struct {
+      logic [15:1] reserved;
+      logic        empty;
+   } endpo_control_t;
+
+   typedef struct {
+      logic [15:3] reserved;
+      logic        stall;    // request a STALL answer
+      logic        ack;      // acknowledge IN data
+      logic        full;     // FIFO full
+   } endpi_control_t;
+*/
 endpackage

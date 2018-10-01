@@ -1,20 +1,15 @@
-\ Implements the Chapter 9 enumeration commands of the Universal Bus
-\ Specification Revision 2.0 for the J1 processor.
-
-module[ device"
-
-include io-addr.fs
-include usb-defs.fs
-include descriptors.fs
+\ USB stack for device
+\
+\ Endpoints
+\ ---------
+\   0: control-in     0: control-out
+\   1: interrupt-in   1: not implemented
 
 URAM
-variable usb-state
-0 constant powered-state
-1 constant default-state
-2 constant address-state
-3 constant config-state
-
-variable usb-pending-address
+variable token-pid
+variable token-address
+variable token-endpoint
+variable token-crc
 
 variable bmRequestType
 Variable bRequest
@@ -22,143 +17,301 @@ variable wValue
 variable wIndex
 variable wLength
 
-variable endp0-start
-variable endp0-end
-8 constant endp0-max-length
+variable data-crc
+variable data-pid
 
 ROM
-: usb-init  ( -- )
-    powered-state usb-state !
-    h# 0 usb-pending-address !  h# 0 io-usb-address !
-;
 
-: usb-reset ( -- )
-    default-state usb-state !
-    h# 0 usb-pending-address !  h# 0 io-usb-address !
-;
+: set-pid ( pid -- )   txbuf-c! ;
+: get-pid ( -- pid )   rxbuf-c@ ;
 
-: powered-state? ( -- f )  usb-state @ powered-state = ;
-: default-state? ( -- f )  usb-state @ default-state = ;
-: address-state? ( -- f )  usb-state @ address-state = ;
-: config-state?  ( -- f )  usb-state @ config-state  = ;
+: set-zlp ( -- )   d# 0 txbuf-! ;
+: get-zlp ( -- )   rxbuf-@ data-crc ! ;
 
-: host-to-device?    ( -- f )   bmRequestType @  host-to-device    = ;
-: host-to-interface? ( -- f )   bmRequestType @  host-to-interface = ;
-: host-to-endpoint?  ( -- f )   bmRequestType @  host-to-endpoint  = ;
-: device-to-host?    ( -- f )   bmRequestType @  device-to-host    = ;
-: interface-to-host? ( -- f )   bmRequestType @  interface-to-host = ;
-: endpoint-to-host?  ( -- f )   bmRequestType @  endpoint-to-host  = ;
+: token-setup? ( -- f )   token-pid @ %setup = ;
+: token-out?   ( -- f )   token-pid @ %out   = ;
+: token-in?    ( -- f )   token-pid @ %in    = ;
+: token-ack?   ( -- f )   token-pid @ %ack   = ;
+: token-nak?   ( -- f )   token-pid @ %nak   = ;
 
-: get-status?        ( -- f )   bRequest @  get-status        = ;
-: clear-feature?     ( -- f )   bRequest @  clear-feature     = ;
-: set-feature?       ( -- f )   bRequest @  set-feature       = ;
-: set-address?       ( -- f )   bRequest @  set-address       = ;
-: get-descriptor?    ( -- f )   bRequest @  get-descriptor    = ;
-: set-descriptor?    ( -- f )   bRequest @  set-descriptor    = ;
-: get-configuration? ( -- f )   bRequest @  get-configuration = ;
-: set-configuration? ( -- f )   bRequest @  set-configuration = ;
-: get-interface?     ( -- f )   bRequest @  get-interface     = ;
-: set-interface?     ( -- f )   bRequest @  set-interface     = ;
+: host-to-device?    ( -- f )   bmRequestType @ %host-to-device    = ;
+: host-to-interface? ( -- f )   bmRequestType @ %host-to-interface = ;
+: host-to-endpoint?  ( -- f )   bmRequestType @ %host-to-endpoint  = ;
+: device-to-host?    ( -- f )   bmRequestType @ %device-to-host    = ;
+: interface-to-host? ( -- f )   bmRequestType @ %interface-to-host = ;
+: endpoint-to-host?  ( -- f )   bmRequestType @ %endpoint-to-host  = ;
 
-: device?            ( -- f )   wValue @ hibyte  %device = ;
-: configuration?     ( -- f )   wValue @ hibyte  %configuration = ;
-: string?            ( -- f )   wValue @ hibyte  %string = ;
+: get-status?        ( -- f )   bRequest @  %get-status        = ;
+: clear-feature?     ( -- f )   bRequest @  %clear-feature     = ;
+: set-feature?       ( -- f )   bRequest @  %set-feature       = ;
+: set-address?       ( -- f )   bRequest @  %set-address       = ;
+: get-descriptor?    ( -- f )   bRequest @  %get-descriptor    = ;
+: set-descriptor?    ( -- f )   bRequest @  %set-descriptor    = ;
+: get-configuration? ( -- f )   bRequest @  %get-configuration = ;
+: set-configuration? ( -- f )   bRequest @  %set-configuration = ;
+: get-interface?     ( -- f )   bRequest @  %get-interface     = ;
+: set-interface?     ( -- f )   bRequest @  %set-interface     = ;
 
-\ clear CRC (and possible garbage) from FIFO
-: clear-endp  ( u -- )   2* cells io-endpo0-control +
-    begin
-	h# 2 over !      \ assign 1'b1 to io-endpo*-control.rdreq
-	dup@  h# 1 and   \ wait for io-endpo*-control.empty == 1'b1
-    until
-    drop ;
+\ ======================================================================
+\ CRC-16 calculation
+\ ======================================================================
 
-\ Read from endpoint fifo
-: endp-c@ ( u -- 8b  )   2* cells io-endpo0-data +  @ ;
-: endp-@  ( u -- 16b )   dup endp-c@  swap endp-c@  lohi-pack ;
+: set-crc ( -- )  data-crc @ invert txbuf-! ;
+: get-crc ( -- )  rxbuf-@  drop ;
 
-\ Write to endpoint fifo
-: endp-c! ( 8b u --  )   2* cells io-endpi0-data +  ! ;
-: endp-!  ( 16b u -- )   >r  hilo  r@ endp-c!  r> endp-c! ;
+\ initialize CRC
+: /crc ( -- )   h# ffff data-crc ! ;
 
-: clear-endp0 ( --     )   d# 0 clear-endp ;
-: endp0-c@    ( -- 8b  )   d# 0 endp-c@ ;
-: endp0-@     ( -- 16b )   d# 0 endp-@ ;
-: endp0-c!    ( 8b --  )   d# 0 endp-c! ;
-: endp0-!     ( 16b -- )   d# 0 endp-! ;
+\ CRC-16 calculation step per bit
+: (+crc) ( data crc -- data' crc' )
+    2dup xor d# 1 and if        
+        swap d# 1 rshift  swap d# 1 rshift  h# a001 xor
+    else
+        swap d# 1 rshift swap d# 1 rshift
+    then ;
 
-\ Discard CRC16 after every DATA0 or DATA1 from host.
-: discard-crc ( -- )   endp0-@ 2drop ;
-
-: handshake-stall ( -- )   h# 4 io-endpi0-control ! ;
-
-\ zero-length-package from host
-: zlp ( -- )   discard-crc ;
-
-: acknowledge-packet0 ( -- )   h# 2 io-endpi0-control ! ;  \ io-endpi0.zlp = 1'b1 (FIXME also other endpoints)
-
-: short-packet? ( -- f )   endp0-end @  endp0-start @  endp0-max-length +  u> invert ;
-
-\ write IN transfer data to host
-: copy-data-to-ep0 ( -- )
-    endp0-start @
-    begin  dup endp0-end @ u<  while  dup c@ endp0-c!  1+  repeat  drop
-    acknowledge-packet0
-    short-packet? if  d# -1 bRequest !  then \ Are we sending a short packet?
-    ( DATA0/1 toggle... )
-;
+\ CRC-16 calculation step of one byte
+: +crc ( data -- )
+    data-crc @
+    (+crc) (+crc) (+crc) (+crc) (+crc) (+crc) (+crc) (+crc)
+    data-crc !  drop ;
     
-: 0-length-packet ( -- )          acknowledge-packet0 ;       \ (FIXME also other endpoints)
-: 1-length-packet ( n -- )        endp0-c! acknowledge-packet0 ;
-: 2-length-packet ( n1 n2 -- )    endp0-!  acknowledge-packet0 ;
-: data-packets    ( addr u -- )   over + endp0-end !  endp0-start !  copy-data-to-ep0 ;
+\ ======================================================================
+\ IN token processing
+\ ======================================================================
+URAM
+variable epi0-address
+variable epi0-length
+variable epi0-pid
+variable epi0-wbuff \ two byte output buffer
 
-\ return the descriptor index
-: descriptor-index ( -- index )   wValue @ lobyte ;
+ROM
+\ endpoint 0
+: do-epi0 ( -- )
+    epi0-pid @  set-pid
+    /crc
+    epi0-length @  d# 8 u> if
+        epi0-address @  d# 8 d# 0 do  dup c@  dup txbuf-c! +crc  1+  loop  epi0-address !
+        d# -8 epi0-length +!
+    else
+        epi0-length @ if
+            epi0-address @  epi0-length @ d# 0 do  dup c@  dup txbuf-c! +crc  1+  loop  drop
+            d# 0 epi0-length !
+        then
+    then
+    set-crc
+    epi0-pid @ %data0 = if  %data1  else  %data0  then  epi0-pid !
+    txbuf-wait-empty
+    get-pid ( ACK) drop ;
 
-include token-in.fs
-include token-out.fs
-include token-setup.fs
+URAM
+variable epi1-pid
+variable >mouse-coords
+variable mouse-ticker
 
-\ check flags
-: token-done?  ( -- f )   io-usb-status @  h#  1 and ;
-: stall?       ( -- f )   io-usb-status @  h#  2 and ;
-: usb-reset?   ( -- f )   io-usb-status @  h#  4 and ;
-: error-pid?   ( -- f )   io-usb-status @  h#  8 and ;
-: error-crc5?  ( -- f )   io-usb-status @  h# 10 and ;
-: error-crc16? ( -- f )   io-usb-status @  h# 20 and ;
-: error-bto?   ( -- f )   io-usb-status @  h# 40 and ;
+ROM
+create mouse-coords
+    -4 , -4 ,
+    -4 ,  0 ,
+    -4 ,  4 ,
+     0 ,  4 ,
+     4 ,  4 ,
+     4 ,  0 ,
+     4 , -4 ,
+     0 , -4 ,
 
-\ clear flags
-: /token-done  ( -- )   h#  1 io-usb-status ! ;
-: /stall       ( -- )   h#  2 io-usb-status ! ;
-: /usb-reset   ( -- )   h#  4 io-usb-status ! ;
-: /error-pid   ( -- )   h#  8 io-usb-status ! ;
-: /error-crc5  ( -- )   h# 10 io-usb-status ! ;
-: /error-crc16 ( -- )   h# 20 io-usb-status ! ;
-: /error-bto   ( -- )   h# 40 io-usb-status ! ;
+: /mouse ( -- )
+    d# 0 >mouse-coords !
+    d# 0 mouse-ticker ! ;
 
-: usb-error? ( -- f ) io-usb-status @  h# 78 and ;
+: +mouse ( -- xpos ypos )
+    d# 1 mouse-ticker +!
+    mouse-ticker @ d# 14 u> if
+        d# 0 mouse-ticker !
+        >mouse-coords @  1+  h# 7 and  >mouse-coords !
+    then
+    >mouse-coords @  2* cells mouse-coords + 2@ ;
 
-\ for now just clear the flags
-: /usb-error ( -- )
-    h# 3 io-ledr !
-    /error-pid
-    /error-crc5
-    /error-crc16
-    /error-bto ;
+\ endpoint 1
+: do-epi1 ( -- )
+    epi1-pid @ set-pid
+    /crc
+    h# 0 dup txbuf-c! +crc
+    +mouse
+    ( x) dup txbuf-c! +crc
+    ( y) dup txbuf-c! +crc
+    h# 0 dup txbuf-c! +crc
+    set-crc
+    epi1-pid @ %data0 = if  %data1  else  %data0  then  epi1-pid !
+    txbuf-wait-empty
+    get-pid ( ACK) drop ;
 
-: token@ ( -- n )   io-usb-token @  d# 4 rshift ;
+\ ======================================================================
+\ OUT token processing
+\ ======================================================================
+\ ----------------------------------------------------------------------
+\ GET STATUS (0)
+\ ----------------------------------------------------------------------
+: do-get-status ( -- )
+    d# 2 epi0-length !  epi0-wbuff epi0-address !
+    host-to-device?     if  h# 0  epi0-wbuff !  exit  then
+    host-to-interface?  if  h# 0  epi0-wbuff !  exit  then
+    host-to-endpoint?   if  h# 0  epi0-wbuff !  exit  then
+    %ack set-pid ;
 
-: token-done ( -- )
-    h# 2 io-ledr !
-    /token-done
-    token@
-    dup h# 1 = if  token-out  exit  then
-    dup h# 2 = if  token-in   exit  then
-        h# 3 = if  token-setup      then ;
+\ ----------------------------------------------------------------------
+\ CLEAR FEATURE (1)
+\ ----------------------------------------------------------------------
+: do-clear-feature ( -- )   %ack set-pid ;
 
-: service-usb ( -- )
-    h# 1 io-ledr !
-    token-done? if  token-done  then
-    usb-error?  if  /usb-error  then ;
-]module
+\ ----------------------------------------------------------------------
+\ SET FEATURE (3)
+\ ----------------------------------------------------------------------
+: do-set-feature ( -- )   %ack set-pid ;
+
+\ ----------------------------------------------------------------------
+\ SET ADDRESS (5)
+\ ----------------------------------------------------------------------
+: do-set-address ( -- )   %ack set-pid ;
+
+\ ----------------------------------------------------------------------
+\ GET DESCRIPTOR (6)
+\ ----------------------------------------------------------------------
+: descriptor-to-ep0 ( dev-descr-addr length -- )
+    wLength @ min epi0-length !  epi0-address !
+    %ack set-pid ;
+
+: do-get-device-descriptor        ( -- ) device-descriptor        dup c@                        descriptor-to-ep0 ;
+: do-get-configuration-descriptor ( -- ) configuration-descriptor size-configuration-descriptor descriptor-to-ep0 ;
+: do-get-string-descriptor0       ( -- ) string-descriptor0       dup c@                        descriptor-to-ep0 ;
+: do-get-string-descriptor1       ( -- ) string-descriptor1       dup c@                        descriptor-to-ep0 ;
+: do-get-string-descriptor2       ( -- ) string-descriptor2       dup c@                        descriptor-to-ep0 ;
+
+: do-get-string-descriptor ( -- )   wValue @  h# 00ff and ( descriptor-index)
+    dup 0=      if  drop do-get-string-descriptor0  exit then
+    dup d# 1 =  if  drop do-get-string-descriptor1  exit then
+    dup d# 2 =  if  drop do-get-string-descriptor2  exit then
+    drop  %stall set-pid ;
+
+: do-get-hid-descriptor ( -- )   hid-descriptor dup c@ descriptor-to-ep0 ;
+
+: do-get-report-descriptor ( -- )   report-descriptor1 size-report-descriptor1 descriptor-to-ep0 ;
+
+: do-get-descriptor ( -- )   wValue @  d# 8 rshift ( descriptor-type)
+    dup %device        =  if  drop do-get-device-descriptor        exit  then
+    dup %configuration =  if  drop do-get-configuration-descriptor exit  then
+    dup %string        =  if  drop do-get-string-descriptor        exit  then
+    dup %hid           =  if  drop do-get-hid-descriptor           exit  then
+    dup %report        =  if  drop do-get-report-descriptor        exit  then
+    %stall set-pid ;
+
+\ ----------------------------------------------------------------------
+\ SET DESCRIPTOR (7)
+\ ----------------------------------------------------------------------
+: do-set-descriptor ( -- )   %ack set-pid ;
+
+\ ----------------------------------------------------------------------
+\ GET CONFIGURATION (8)
+\ ----------------------------------------------------------------------
+: do-get-configuration ( -- )
+    d# 1 epi0-length !  epi0-wbuff epi0-address !
+    configuration-descriptor h# 5 + c@ ( bConfigurationValue) epi0-wbuff c!
+    %ack set-pid ;
+
+\ ----------------------------------------------------------------------
+\ SET CONFIGURATION (9)
+\ ----------------------------------------------------------------------
+: do-set-configuration ( -- )
+    %data0 epi1-pid !  \ IN response at endpoint 1 starts always with DATA0
+    %ack set-pid ;
+
+\ ----------------------------------------------------------------------
+\ GET INTERFACE (10)
+\ ----------------------------------------------------------------------
+\ not implemented
+
+\ ----------------------------------------------------------------------
+\ SET INTERFACE (11)
+\ ----------------------------------------------------------------------
+: do-set-interface ( -- )   %ack set-pid ;
+
+\ ----------------------------------------------------------------------
+\ SYNCH FRAME (12)
+\ ----------------------------------------------------------------------
+\ not implemented
+
+\ endpoint 0
+\ default OUT response is zero-length package
+: do-epo0 ( -- )
+    get-pid ( DATA1) drop
+    get-crc
+    %ack set-pid ;
+
+\ ======================================================================
+\ SETUP token processing
+\ ======================================================================
+
+: do-setup ( -- )
+    get-pid ( DATA0) data-pid ! \ don't care
+    rxbuf-c@ bmRequestType !
+    rxbuf-c@ bRequest !
+    rxbuf-@  wValue !
+    rxbuf-@  wIndex !
+    rxbuf-@  wLength !
+    rxbuf-@  data-crc !
+
+    %data1 epi0-pid !  \ IN response starts always with DATA1
+    d# 0 epi0-length ! \ default IN response is zero-length package
+
+    get-status?         if  do-get-status         exit  then
+    clear-feature?      if  do-clear-feature      exit  then
+    set-feature?        if  do-set-feature        exit  then
+    set-address?        if  do-set-address        exit  then
+    get-descriptor?     if  do-get-descriptor     exit  then
+    set-descriptor?     if  do-set-descriptor     exit  then
+    get-configuration?  if  do-get-configuration  exit  then
+    set-configuration?  if  do-set-configuration  exit  then
+    set-interface?      if  do-set-interface      exit  then
+    %ack set-pid ; \ always ACK
+
+\ ======================================================================
+\ main loop
+\ ======================================================================
+
+\ get token from input buffer
+: get-token ( pid -- )
+    rxbuf-c@ token-pid !
+    rxbuf-@ dup h# 7f and  token-address !
+    dup d# 7 rshift  h# 0f and  token-endpoint !
+    d# 11 rshift  token-crc ! ;
+
+\ process endpoint 0
+: do-ep0 ( -- )
+    token-setup?  if do-setup  exit  then
+    token-out?    if do-epo0   exit  then
+    token-in?     if do-epi0   exit  then ;
+
+\ process endpoint 1
+: do-ep1 ( -- )
+    token-in?  if  do-epi1  exit  then ;
+
+: do-transfer ( -- )
+    get-token
+    token-endpoint @  0=      if  do-ep0  exit  then
+    token-endpoint @  d# 1 =  if  do-ep1  exit  then ;
+
+DEBUG [IF]
+    : .token ( -- )
+        ." token-pid=0x" token-pid @ h.
+        ." token-address=" token-address ?
+        ." token-endpoint=" token-endpoint ?
+        ." token-crc=0x" token-crc @ h. ;
+
+    : .request ( -- )
+        ." bmRequestType=0x" bmRequestType @ h.
+        ." bRequest=0x" bRequest @ h.
+        ." wValue=0x" wValue @ h.
+        ." wIndex=" wIndex ?
+        ." wLength=" wLength ?
+        ." data-crc=0x" data-crc @ h. ;
+[THEN]
