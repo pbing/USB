@@ -5,7 +5,7 @@ The cursor will move in a continual octagon.
 
 ## Status
 - FPGA proven as additional mouse for Windows 10
-- Does work with macOS yet.
+- Does not work with macOS -- although USB continous IN packages can be observed with a logic analyzer.
 
 ## Installation
 ```shell
