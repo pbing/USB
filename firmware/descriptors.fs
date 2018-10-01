@@ -2,33 +2,33 @@
 
 ROM
 create report-descriptor1
-    $05 c, $01 c, \ usage page (generic desktop)
-    $09 c, $02 c, \ usage mouse
-    $a1 c, $01 c, \ collection (application)
-    $09 c, $01 c, \ usage (pointer)
-    $a1 c, $00 c, \ collection (physical)
-
-    $05 c, $09 c, \ usage page (buttons)
-    $19 c, $01 c, \ usage minimum (1)
-    $29 c, $03 c, \ usage maximum (3)
-    $15 c, $00 c, \ logical minimum (0)
-    $25 c, $01 c, \ logical maximum (1)
-    $95 c, $03 c, \ report count (3)
-    $75 c, $01 c, \ report size (1 bit)
-    $81 c, $02 c, \ input (variable, 3 bits)
-    $95 c, $01 c, \ report count (1)
-    $75 c, $05 c, \ report size (5 bits)
-    $81 c, $01 c, \ input (constant, 5 bit padding)
-
-    $05 c, $01 c, \ usage page (generic desktop)
-    $09 c, $30 c, \ usage X
-    $09 c, $31 c, \ usage Y
-    $15 c, $81 c, \ logical minimum -127
-    $25 c, $7F c, \ logical maximum 127
-    $75 c, $08 c, \ report size (8 bits)
-    $95 c, $03 c, \ report count (3)
-    $81 c, $06 c, \ input (relative+variable, 2 position bytes X & Y)
-    $c0 c, $c0 c, \ end collection (physical), end collection (application)
+    $05 c, $01 c,         \ usage page (generic desktop)
+    $09 c, $02 c,         \ usage mouse
+    $a1 c, $01 c,         \ collection (application)
+        $09 c, $01 c,     \ usage (pointer)
+        $a1 c, $00 c,     \ collection (physical)    
+            $05 c, $09 c, \ usage page (buttons)
+            $19 c, $01 c, \ usage minimum (1)
+            $29 c, $03 c, \ usage maximum (3)
+            $15 c, $00 c, \ logical minimum (0)
+            $25 c, $01 c, \ logical maximum (1)
+            $95 c, $03 c, \ report count (3)
+            $75 c, $01 c, \ report size (1 bit)
+            $81 c, $02 c, \ input (variable, 3 bits)
+            $95 c, $01 c, \ report count (1)
+            $75 c, $05 c, \ report size (5 bits)
+            $81 c, $01 c, \ input (constant, 5 bit padding)
+        
+            $05 c, $01 c, \ usage page (generic desktop)
+            $09 c, $30 c, \ usage X
+            $09 c, $31 c, \ usage Y
+            $15 c, $81 c, \ logical minimum -127
+            $25 c, $7F c, \ logical maximum 127
+            $75 c, $08 c, \ report size (8 bits)
+            $95 c, $02 c, \ report count (2)
+            $81 c, $06 c, \ input (relative+variable, 2 position bytes X & Y)
+        $c0 c,            \ end collection (physical), 
+    $c0 c,                \ end collection (application)
 
 #50 constant size-report-descriptor1
 
@@ -83,7 +83,7 @@ meta there target constant hid-descriptor
     %endpoint      c, \ bDescriptorType
     $81            c, \ bEndPointAddress (IN1)
     $03            c, \ bmAttributes (Interrupt)
-    #4             h, \ wMaxPacketSize
+    #8             h, \ wMaxPacketSize
     #10            c, \ bInterval (10 ms)
 
 #34 constant size-configuration-descriptor

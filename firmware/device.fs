@@ -106,11 +106,12 @@ ROM
 
 URAM
 variable epi1-pid
-variable >mouse-coords
+variable >mouse-xy
 variable mouse-ticker
 
 ROM
-create mouse-coords
+\ table of x-y directions
+create mouse-xy
     -4 , -4 ,
     -4 ,  0 ,
     -4 ,  4 ,
@@ -120,27 +121,28 @@ create mouse-coords
      4 , -4 ,
      0 , -4 ,
 
+\ initialize mouse emulation
 : /mouse ( -- )
-    d# 0 >mouse-coords !
+    d# 0 >mouse-xy !
     d# 0 mouse-ticker ! ;
 
-: +mouse ( -- xpos ypos )
+\ advance mouse positions
+: +mouse ( -- ypos xpos )
     d# 1 mouse-ticker +!
     mouse-ticker @ d# 14 u> if
         d# 0 mouse-ticker !
-        >mouse-coords @  1+  h# 7 and  >mouse-coords !
+        >mouse-xy @  1+  h# 7 and  >mouse-xy !
     then
-    >mouse-coords @  2* cells mouse-coords + 2@ ;
+    >mouse-xy @  2* cells mouse-xy + 2@ ;
 
 \ endpoint 1
 : do-epi1 ( -- )
     epi1-pid @ set-pid
     /crc
-    h# 0 dup txbuf-c! +crc
+    ( buttons) h# 0 dup txbuf-c! +crc
     +mouse
     ( x) dup txbuf-c! +crc
     ( y) dup txbuf-c! +crc
-    h# 0 dup txbuf-c! +crc
     set-crc
     epi1-pid @ %data0 = if  %data1  else  %data0  then  epi1-pid !
     txbuf-wait-empty

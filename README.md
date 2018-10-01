@@ -4,7 +4,8 @@ Derived from an example [application](https://github.com/pbing/USB/tree/master/d
 The cursor will move in a continual octagon.
 
 ## Status
-- FPGA proven
+- FPGA proven as additional mouse for Windows 10
+- Does work with macOS yet.
 
 ## Installation
 ```shell
