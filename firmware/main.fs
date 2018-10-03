@@ -15,7 +15,7 @@ ROM
 
 module[ everything"
 
-include ../../J1_WB/j1_forth/nuc.fs
+include ../J1_WB/j1_forth/nuc.fs
 
 include application.fs
 
