@@ -157,13 +157,13 @@ module tb_top;
    const byte CONFIGURATION_DESCRIPTOR[]     = '{8'd09, 8'h02, 8'h22, 8'h00, 8'h01, 8'h01, 8'h00, 8'ha0, 8'd50,
                                                  8'd09, 8'h04, 8'h00, 8'h00, 8'h01, 8'h03, 8'h01, 8'h02, 8'h00,
                                                  8'd09, 8'h21, 8'h00, 8'h01, 8'h00, 8'h01, 8'h22, 8'h32, 8'h00,
-                                                 8'd07, 8'h05, 8'h81, 8'h03, 8'h04, 8'h00, 8'd10};
+                                                 8'd07, 8'h05, 8'h81, 8'h03, 8'h08, 8'h00, 8'd10};
 
    const byte HID_REPORT_DESCRIPTOR[]        = '{8'h05, 8'h01, 8'h09, 8'h02, 8'ha1, 8'h01, 8'h09, 8'h01, 8'ha1, 8'h00,
                                                  8'h05, 8'h09, 8'h19, 8'h01, 8'h29, 8'h03, 8'h15, 8'h00, 8'h25, 8'h01,
                                                  8'h95, 8'h03, 8'h75, 8'h01, 8'h81, 8'h02, 8'h95, 8'h01, 8'h75, 8'h05,
                                                  8'h81, 8'h01, 8'h05, 8'h01, 8'h09, 8'h30, 8'h09, 8'h31, 8'h15, 8'h81,
-                                                 8'h25, 8'h7f, 8'h75, 8'h08, 8'h95, 8'h03, 8'h81, 8'h06, 8'hc0, 8'hc0};
+                                                 8'h25, 8'h7f, 8'h75, 8'h08, 8'h95, 8'h02, 8'h81, 8'h06, 8'hc0, 8'hc0};
 
    const byte SET_ADDRESS[]                  = '{8'h00, 8'h05, 8'h06, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00};
 
@@ -252,115 +252,115 @@ module tb_top;
 	CPU_RESET_n = 1'b0;
         #100ns CPU_RESET_n = 1'b1;
 
-//	#100us;
-//	$display("SET_ADDRESS('h%h)", SET_ADDRESS[2]);
-//        // SETUP stage
-//        send_token(SETUP, 0, 0);
-//        send_data(DATA0, SET_ADDRESS);
-//        receive_pid(ACK);
-//        // STATUS stage
-//        send_token(IN, 0, 0);
-//        receive_data(DATA1);
-//        send_pid(ACK);
+	#100us;
+	$display("SET_ADDRESS('h%h)", SET_ADDRESS[2]);
+        // SETUP stage
+        send_token(SETUP, 0, 0);
+        send_data(DATA0, SET_ADDRESS);
+        receive_pid(ACK);
+        // STATUS stage
+        send_token(IN, 0, 0);
+        receive_data(DATA1);
+        #10us send_pid(ACK);
 
-//        #100us;
-//	$display("GET_DEVICE_DESCRIPTOR");
-//        // SETUP stage
-//        send_token(SETUP, 6, 0);
-//        send_data(DATA0, GET_DEVICE_DESCRIPTOR);
-//        receive_pid(ACK);
-//        // DATA stage
-//        #10us;
-//        send_token(IN, 6, 0);
-//        receive_data(DATA1, DEVICE_DESCRIPTOR[0:7]); // 8 bytes
-//        send_pid(ACK);
-//        #10us;
-//        send_token(IN, 6, 0);
-//        receive_data(DATA0, DEVICE_DESCRIPTOR[8:15]); // 8 bytes
-//        send_pid(ACK);
-//        #10us;
-//        send_token(IN, 6, 0);
-//        receive_data(DATA1, DEVICE_DESCRIPTOR[16:17]); // 2 bytes
-//        send_pid(ACK);
-//        // STATUS stage
-//        #10us;
-//        send_token(OUT, 6, 0);
-//        send_data(DATA1); // ZLP
-//        receive_pid(ACK);
+        #100us;
+	$display("GET_DEVICE_DESCRIPTOR");
+        // SETUP stage
+        send_token(SETUP, 6, 0);
+        send_data(DATA0, GET_DEVICE_DESCRIPTOR);
+        receive_pid(ACK);
+        // DATA stage
+        #10us;
+        send_token(IN, 6, 0);
+        receive_data(DATA1, DEVICE_DESCRIPTOR[0:7]); // 8 bytes
+        #10us send_pid(ACK);
+        #10us;
+        send_token(IN, 6, 0);
+        receive_data(DATA0, DEVICE_DESCRIPTOR[8:15]); // 8 bytes
+        #10us send_pid(ACK);
+        #10us;
+        send_token(IN, 6, 0);
+        receive_data(DATA1, DEVICE_DESCRIPTOR[16:17]); // 2 bytes
+        #10us send_pid(ACK);
+        // STATUS stage
+        #10us;
+        send_token(OUT, 6, 0);
+        send_data(DATA1); // ZLP
+        receive_pid(ACK);
 
-//        #100us;
-//	$display("GET_CONFIGURATION_DESCRIPTOR");
-//        // SETUP stage
-//        send_token(SETUP, 6, 0);
-//        send_data(DATA0, GET_CONFIGURATION_DESCRIPTOR);
-//        receive_pid(ACK);
-//        // DATA stage
-//        #10us;
-//        send_token(IN, 6, 0);
-//        receive_data(DATA1, CONFIGURATION_DESCRIPTOR[0:7]); // 8 bytes
-//        send_pid(ACK);
-//        #10us;
-//        send_token(IN, 6, 0);
-//        receive_data(DATA0, CONFIGURATION_DESCRIPTOR[8:15]); // 8 bytes
-//        send_pid(ACK);
-//        #10us;
-//        send_token(IN, 6, 0);
-//        receive_data(DATA1, CONFIGURATION_DESCRIPTOR[16:23]); // 8 bytes
-//        send_pid(ACK);
-//        #10us;
-//        send_token(IN, 6, 0);
-//        receive_data(DATA0, CONFIGURATION_DESCRIPTOR[24:31]); // 8 bytes
-//        send_pid(ACK);
-//        #10us;
-//        send_token(IN, 6, 0);
-//        receive_data(DATA1, CONFIGURATION_DESCRIPTOR[32:33]); // 2 bytes
-//        send_pid(ACK);
-//        // STATUS stage
-//        #10us;
-//        send_token(OUT, 6, 0);
-//        send_data(DATA1); // ZLP
-//        receive_pid(ACK);
+        #100us;
+	$display("GET_CONFIGURATION_DESCRIPTOR");
+        // SETUP stage
+        send_token(SETUP, 6, 0);
+        send_data(DATA0, GET_CONFIGURATION_DESCRIPTOR);
+        receive_pid(ACK);
+        // DATA stage
+        #10us;
+        send_token(IN, 6, 0);
+        receive_data(DATA1, CONFIGURATION_DESCRIPTOR[0:7]); // 8 bytes
+        #10us send_pid(ACK);
+        #10us;
+        send_token(IN, 6, 0);
+        receive_data(DATA0, CONFIGURATION_DESCRIPTOR[8:15]); // 8 bytes
+        #10us send_pid(ACK);
+        #10us;
+        send_token(IN, 6, 0);
+        receive_data(DATA1, CONFIGURATION_DESCRIPTOR[16:23]); // 8 bytes
+        #10us send_pid(ACK);
+        #10us;
+        send_token(IN, 6, 0);
+        receive_data(DATA0, CONFIGURATION_DESCRIPTOR[24:31]); // 8 bytes
+        #10us send_pid(ACK);
+        #10us;
+        send_token(IN, 6, 0);
+        receive_data(DATA1, CONFIGURATION_DESCRIPTOR[32:33]); // 2 bytes
+        send_pid(ACK);
+        // STATUS stage
+        #10us;
+        send_token(OUT, 6, 0);
+        send_data(DATA1); // ZLP
+        receive_pid(ACK);
 
-//        #100us;
-//	$display("GET_HID_REPORT_DESCRIPTOR");
-//        // SETUP stage
-//        send_token(SETUP, 6, 0);
-//        send_data(DATA0, GET_HID_REPORT_DESCRIPTOR);
-//        receive_pid(ACK);
-//        // DATA stage
-//        #10us;
-//        send_token(IN, 6, 0);
-//        receive_data(DATA1, HID_REPORT_DESCRIPTOR[0:7]); // 8 bytes
-//        send_pid(ACK);
-//        #10us;
-//        send_token(IN, 6, 0);
-//        receive_data(DATA0, HID_REPORT_DESCRIPTOR[8:15]); // 8 bytes
-//        send_pid(ACK);
-//        #10us;
-//        send_token(IN, 6, 0);
-//        receive_data(DATA1, HID_REPORT_DESCRIPTOR[16:23]); // 8 bytes
-//        send_pid(ACK);
-//        #10us;
-//        send_token(IN, 6, 0);
-//        receive_data(DATA0, HID_REPORT_DESCRIPTOR[24:31]); // 8 bytes
-//        send_pid(ACK);
-//        #10us;
-//        send_token(IN, 6, 0);
-//        receive_data(DATA1, HID_REPORT_DESCRIPTOR[32:39]); // 8 bytes
-//        send_pid(ACK);
-//        #10us;
-//        send_token(IN, 6, 0);
-//        receive_data(DATA0, HID_REPORT_DESCRIPTOR[40:47]); // 8 bytes
-//        send_pid(ACK);
-//        #10us;
-//        send_token(IN, 6, 0);
-//        receive_data(DATA1, HID_REPORT_DESCRIPTOR[48:49]); // 2 bytes
-//        send_pid(ACK);
-//        // STATUS stage
-//        #10us;
-//        send_token(OUT, 6, 0);
-//        send_data(DATA1); // ZLP
-//        receive_pid(ACK);
+        #100us;
+	$display("GET_HID_REPORT_DESCRIPTOR");
+        // SETUP stage
+        send_token(SETUP, 6, 0);
+        send_data(DATA0, GET_HID_REPORT_DESCRIPTOR);
+        receive_pid(ACK);
+        // DATA stage
+        #10us;
+        send_token(IN, 6, 0);
+        receive_data(DATA1, HID_REPORT_DESCRIPTOR[0:7]); // 8 bytes
+        send_pid(ACK);
+        #10us;
+        send_token(IN, 6, 0);
+        receive_data(DATA0, HID_REPORT_DESCRIPTOR[8:15]); // 8 bytes
+        send_pid(ACK);
+        #10us;
+        send_token(IN, 6, 0);
+        receive_data(DATA1, HID_REPORT_DESCRIPTOR[16:23]); // 8 bytes
+        send_pid(ACK);
+        #10us;
+        send_token(IN, 6, 0);
+        receive_data(DATA0, HID_REPORT_DESCRIPTOR[24:31]); // 8 bytes
+        send_pid(ACK);
+        #10us;
+        send_token(IN, 6, 0);
+        receive_data(DATA1, HID_REPORT_DESCRIPTOR[32:39]); // 8 bytes
+        send_pid(ACK);
+        #10us;
+        send_token(IN, 6, 0);
+        receive_data(DATA0, HID_REPORT_DESCRIPTOR[40:47]); // 8 bytes
+        send_pid(ACK);
+        #10us;
+        send_token(IN, 6, 0);
+        receive_data(DATA1, HID_REPORT_DESCRIPTOR[48:49]); // 2 bytes
+        send_pid(ACK);
+        // STATUS stage
+        #10us;
+        send_token(OUT, 6, 0);
+        send_data(DATA1); // ZLP
+        receive_pid(ACK);
 
 	#100us;
 	$display("SET_CONFIGURATION('h%h)", SET_CONFIGURATION[2]);
@@ -371,19 +371,31 @@ module tb_top;
         // STATUS stage
         send_token(IN, 0, 0);
         receive_data(DATA1);
-        send_pid(ACK);
+        #10us send_pid(ACK);
 
         #100us;
 	$display("Read HID report");
         send_token(IN, 6, 1);
-        receive_data(DATA0, '{8'h00, 8'h00, 8'h00, 8'h00}); // 8 bytes
-        send_pid(ACK);
+        receive_data(DATA0, '{8'h00, 8'h00, 8'h00}, 1'b1);
+        #10us send_pid(ACK);
 
         #100us;
 	$display("Read HID report");
         send_token(IN, 6, 1);
-        receive_data(DATA1, '{8'h00, 8'h00, 8'h00, 8'h00}); // 8 bytes
-        send_pid(ACK);
+        receive_data(DATA1, '{8'h00, 8'h00, 8'h00}, 1'b1);
+        /* #10us send_pid(ACK); */
+
+        #100us;
+	$display("Read HID report");
+        send_token(IN, 6, 1);
+        receive_data(DATA1, '{8'h00, 8'h00, 8'h00}, 1'b1);
+        #10us send_pid(ACK);
+
+        #100us;
+	$display("Read HID report");
+        send_token(IN, 6, 1);
+        receive_data(DATA0, '{8'h00, 8'h00, 8'h00}, 1'b1);
+        #10us send_pid(ACK);
 
 	#100us $stop;
      end:main
@@ -508,7 +520,7 @@ module tb_top;
       do @(posedge usb_clk); while (tx_d_en);
    endtask
 
-   task receive_data(input pid_t expected_pid, input byte expected_data[] = '{});
+   task receive_data(input pid_t expected_pid, input byte expected_data[] = '{}, input bit ignore = 1'b0);
       logic [15:0] crc, expected_crc;
 
       receive_pid (expected_pid);
@@ -518,7 +530,7 @@ module tb_top;
 	   do @(posedge usb_clk); while (!rx_valid);
 	   $display("%t %M('h%h)", $realtime, rx_data);
 
-	   assert (rx_data == expected_data[i])
+	   assert (ignore || rx_data == expected_data[i])
 	     else $error("expected = 'h%h, received = 'h%h", expected_data[i], rx_data);
 	end
 
@@ -530,7 +542,7 @@ module tb_top;
       $display("%t %M('h%h) CRC", $realtime, crc);
       expected_crc = crc16(expected_data);
 
-      assert (crc == expected_crc)
+      assert (ignore || crc == expected_crc)
 	else $error("expected = 'h%h, received = 'h%h", expected_crc, crc);
    endtask
 
@@ -541,8 +553,7 @@ module tb_top;
       do @(posedge usb_clk); while (!rx_valid);
       received_pid = pid_t'(rx_data);
 
-      if (received_pid == ACK || received_pid == NAK || received_pid == STALL)
-	$display("%t %M(%p)", $realtime, received_pid);
+      $display("%t %M(%p)", $realtime, received_pid);
 
       assert (received_pid == expected_pid)
 	else $error("expected = %p, received = %p", expected_pid, received_pid);
