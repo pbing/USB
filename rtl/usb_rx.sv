@@ -190,7 +190,7 @@ module usb_rx
      if (reset)
        valid <= 1'b0;
      else
-       valid <= rcv_data & clk_en;
+       valid <= rcv_bit & rcv_data & clk_en;
 endmodule
 
 `resetall
