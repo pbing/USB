@@ -3,8 +3,8 @@ module[ application"
 
 false constant DEBUG
 
-include io-access.fs
 include usb-defs.fs
+include io-access.fs
 include descriptors.fs
 include device.fs
 

@@ -28,3 +28,12 @@ $6006 constant io-rxbuf-control
 
 : rxbuf-c@ ( -- 8b )   begin  io-rxbuf-control @  h# 1 and  while repeat  io-rxbuf-data @ ;
 : rxbuf-@ ( -- 16b )   rxbuf-c@ rxbuf-c@  lohi-pack ;
+
+\ Receive ACK and return true.
+\ If timeout return false.
+: ack? ( -- f)
+    d# 200 \ timeout counter (16..18 bit times)
+    begin  io-rxbuf-control @  h# 1 and  while
+            1-  dup 0=  if  exit  then
+    repeat  drop
+    io-rxbuf-data @  %ack = ;

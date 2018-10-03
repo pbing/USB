@@ -28,11 +28,11 @@ ROM
 : set-zlp ( -- )   d# 0 txbuf-! ;
 : get-zlp ( -- )   rxbuf-@ data-crc ! ;
 
+: data-toggle ( addr -- )   dup @  [ %data0 %data1 xor ] literal xor  swap ! ;
+    
 : token-setup? ( -- f )   token-pid @ %setup = ;
 : token-out?   ( -- f )   token-pid @ %out   = ;
 : token-in?    ( -- f )   token-pid @ %in    = ;
-: token-ack?   ( -- f )   token-pid @ %ack   = ;
-: token-nak?   ( -- f )   token-pid @ %nak   = ;
 
 : host-to-device?    ( -- f )   bmRequestType @ %host-to-device    = ;
 : host-to-interface? ( -- f )   bmRequestType @ %host-to-interface = ;
@@ -88,7 +88,7 @@ variable epi0-wbuff \ two byte output buffer
 ROM
 \ endpoint 0
 : do-epi0 ( -- )
-    epi0-pid @  set-pid
+    epi0-pid @  set-pid ( DATA0 or DATA1)
     /crc
     epi0-length @  d# 8 u> if
         epi0-address @  d# 8 d# 0 do  dup c@  dup txbuf-c! +crc  1+  loop  epi0-address !
@@ -100,9 +100,9 @@ ROM
         then
     then
     set-crc
-    epi0-pid @ %data0 = if  %data1  else  %data0  then  epi0-pid !
     txbuf-wait-empty
-    get-pid ( ACK) drop ;
+    ack?  if  epi0-pid data-toggle  then ;
+
 
 URAM
 variable epi1-pid
@@ -123,7 +123,7 @@ create mouse-xy
 
 \ initialize mouse emulation
 : /mouse ( -- )
-    d# 0 >mouse-xy !
+    d# 2 >mouse-xy !
     d# 0 mouse-ticker ! ;
 
 \ advance mouse positions
@@ -137,16 +137,15 @@ create mouse-xy
 
 \ endpoint 1
 : do-epi1 ( -- )
-    epi1-pid @ set-pid
+    epi1-pid @ set-pid ( DATA0 or DATA1)
     /crc
     ( buttons) h# 0 dup txbuf-c! +crc
     +mouse
     ( x) dup txbuf-c! +crc
     ( y) dup txbuf-c! +crc
     set-crc
-    epi1-pid @ %data0 = if  %data1  else  %data0  then  epi1-pid !
     txbuf-wait-empty
-    get-pid ( ACK) drop ;
+    ack?  if  epi1-pid data-toggle  then ;
 
 \ ======================================================================
 \ OUT token processing
