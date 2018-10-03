@@ -29,7 +29,7 @@ ROM
 : get-zlp ( -- )   rxbuf-@ data-crc ! ;
 
 : data-toggle ( addr -- )   dup @  [ %data0 %data1 xor ] literal xor  swap ! ;
-    
+
 : token-setup? ( -- f )   token-pid @ %setup = ;
 : token-out?   ( -- f )   token-pid @ %out   = ;
 : token-in?    ( -- f )   token-pid @ %in    = ;
@@ -64,7 +64,7 @@ ROM
 
 \ CRC-16 calculation step per bit
 : (+crc) ( data crc -- data' crc' )
-    2dup xor d# 1 and if        
+    2dup xor d# 1 and if
         swap d# 1 rshift  swap d# 1 rshift  h# a001 xor
     else
         swap d# 1 rshift swap d# 1 rshift
@@ -75,7 +75,7 @@ ROM
     data-crc @
     (+crc) (+crc) (+crc) (+crc) (+crc) (+crc) (+crc) (+crc)
     data-crc !  drop ;
-    
+
 \ ======================================================================
 \ IN token processing
 \ ======================================================================
@@ -123,7 +123,7 @@ create mouse-xy
 
 \ initialize mouse emulation
 : /mouse ( -- )
-    d# 2 >mouse-xy !
+    d# 0 >mouse-xy !
     d# 0 mouse-ticker ! ;
 
 \ advance mouse positions
